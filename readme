@@ -1,0 +1,49 @@
+Inventory System
+A modern web-based inventory management system built with Next.js, Supabase, and DaisyUI. This application allows users to add, view, update, and delete inventory items, making it easy to track stock levels, prices, and descriptions.
+
+Features
+Add Items: Easily add new items to the inventory with details like name, quantity, price, and description.
+View Inventory: Display a list of all items in a user-friendly table format.
+Update Items: Edit existing item details.
+Delete Items: Remove items from the inventory.
+Search Functionality: Search for items by name or other criteria.
+Responsive Design: Works on desktop and mobile devices with DaisyUI components.
+Real-time Updates: Leverages Supabase for real-time database synchronization.
+Technologies Used
+Frontend: Next.js (React framework) with JavaScript
+Backend/Database: Supabase (PostgreSQL-based backend-as-a-service)
+UI Library: DaisyUI (component library for Tailwind CSS)
+Styling: Tailwind CSS
+Other: Vercel for deployment
+
+
+
+Installation
+Clone the repository:
+git clone https://github.com/Railey29/inventory-system.git
+cd inventory-system
+
+2.Install dependencies:
+npm install
+# or
+yarn install
+
+Set up Supabase:
+
+3.Create a Supabase project at supabase.com.
+Copy your project URL and anon key from the Supabase dashboard.
+Create a .env.local file in the root directory and add:
+
+Set up your database tables (e.g., an inventory table with columns for id, name, quantity, price, description).
+
+4.Run the development server:
+npm run dev
+# or
+yarn dev
+
+Usage
+Navigate to the home page to view the current inventory.
+Use the "Add Item" form to insert new items.
+Click on an item to edit or delete it.
+Search for items using the search bar.
+Data is stored and synced in real-time via Supabase.
