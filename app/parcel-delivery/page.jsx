@@ -28,6 +28,14 @@ export default function Page() {
 
   const [selectedFilter, setSelectedFilter] = useState(""); // for table filter
 
+  // Get selected item details
+  const selectedItem = availableItems.find(
+    (item) => item.name === selectedItemId,
+  );
+  const availableStock = selectedItem?.quantity || 0;
+  const maxQuantity = availableStock; // ✅ Pwede na i-out lahat hanggang 0
+  const canAddParcelOut = availableStock > 0; // ✅ Basta may stock, pwede mag-out
+
   // Load dark mode and fetch items on mount
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
@@ -44,32 +52,37 @@ export default function Page() {
     loadItems();
   }, []);
 
-  // Handle adding a new parcel out
   const handleAddItem = async (e) => {
     e.preventDefault();
-    if (!selectedItemId) return; // make sure user selected an item
-
-    const selectedItem = availableItems.find(
-      (item) => item.name === selectedItemId,
-    );
-    if (!selectedItem) return;
+    if (!selectedItemId) return;
 
     const time_out = `${timeHour}:${timeMinute} ${timeAMPM}`;
 
-    // Call helper to add parcel out
+    // Call the helper - ang validation ay nasa helper na
     const newItem = await addParcelOutItemHelper({
-      item_name: selectedItem.name,
+      item_name: selectedItemId,
       date,
       quantity: Number(quantity),
       time_out,
     });
 
-    if (!newItem) return;
+    if (!newItem) return; // May error, nag-alert na sa helper
 
+    // ✅ Success! Update UI
     setItems([...items, newItem]);
 
+    // ✅ Reload available items para updated ang stock
+    const updatedItems = await fetchParcelItems();
+    setAvailableItems(updatedItems);
+
+    alert(
+      `✅ Successfully created Parcel Out!\n` +
+        `Item: ${selectedItemId}\n` +
+        `Quantity Out: ${quantity} units`,
+    );
+
     // Reset form
-    setSelectedItemId(""); // reset to placeholder
+    setSelectedItemId("");
     setDate("");
     setQuantity(1);
     setTimeHour("1");
@@ -118,36 +131,31 @@ export default function Page() {
       >
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
           {/* Page Header */}
-          <div className="flex items-center gap-3 mb-8 animate__animated animate__fadeInDown">
-            <div
-              className={`p-3 rounded-xl ${
-                darkMode
-                  ? "bg-blue-500/20 border border-blue-500/30"
-                  : "bg-blue-50 border border-blue-200"
-              }`}
-            >
-              <PackageOpen
-                className={`w-7 h-7 ${
-                  darkMode ? "text-blue-400" : "text-blue-600"
+          {/* Header */}
+          <div className="mb-10 animate__animated animate__fadeInDown animate__faster">
+            <div className="flex items-center justify-center gap-4 mb-2">
+              <div
+                className={`flex-1 h-[2px] ${
+                  darkMode ? "bg-gray-700" : "bg-gray-300"
                 }`}
-              />
+              ></div>
+              <div className="flex items-center gap-2 px-3">
+                <PackageOpen
+                  className={`w-6 h-6 ${
+                    darkMode ? "text-blue-400" : "text-blue-600"
+                  }`}
+                />
+                <h1 className="text-3xl font-bold tracking-wide">Stock Out</h1>
+              </div>
+              <div
+                className={`flex-1 h-[2px] ${
+                  darkMode ? "bg-gray-700" : "bg-gray-300"
+                }`}
+              ></div>
             </div>
-            <div>
-              <h1
-                className={`text-2xl sm:text-3xl font-bold ${
-                  darkMode ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Parcel Out
-              </h1>
-              <p
-                className={`text-sm mt-0.5 ${
-                  darkMode ? "text-gray-400" : "text-gray-600"
-                }`}
-              >
-                Track outgoing parcels and items
-              </p>
-            </div>
+            <p className="text-center text-sm opacity-70">
+              Record items going out of your inventory
+            </p>
           </div>
 
           {/* Add Item Form */}
@@ -168,7 +176,7 @@ export default function Page() {
                   darkMode ? "text-white" : "text-gray-900"
                 }`}
               >
-                Add New Item
+                Out Item
               </h2>
             </div>
 
@@ -184,7 +192,10 @@ export default function Page() {
                 </label>
                 <select
                   value={selectedItemId}
-                  onChange={(e) => setSelectedItemId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedItemId(e.target.value);
+                    setQuantity(1); // Reset quantity when item changes
+                  }}
                   className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                     darkMode
                       ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
@@ -197,7 +208,7 @@ export default function Page() {
                   </option>
                   {availableItems.map((item) => (
                     <option key={item.id} value={item.name}>
-                      {item.name}
+                      {item.name} (Stock: {item.quantity})
                     </option>
                   ))}
                 </select>
@@ -237,19 +248,30 @@ export default function Page() {
                 <input
                   type="number"
                   min="1"
-                  max={
-                    availableItems.find((item) => item.name === selectedItemId)
-                      ?.quantity || 1
-                  }
+                  max={maxQuantity || 1}
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
+                  disabled={!selectedItemId || !canAddParcelOut}
                   className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                     darkMode
-                      ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
-                      : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black"
+                      ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white disabled:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                      : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black disabled:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   }`}
                   required
                 />
+                {selectedItemId && !canAddParcelOut && (
+                  <p className="text-xs text-red-500 mt-1">
+                    ⚠️ No stock available
+                  </p>
+                )}
+                {selectedItemId && canAddParcelOut && (
+                  <p
+                    className={`text-xs mt-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    Available: {availableStock} units (can take out 1-
+                    {maxQuantity})
+                  </p>
+                )}
               </div>
 
               {/* Time Out */}
@@ -315,9 +337,14 @@ export default function Page() {
             <div className="flex justify-end mt-6">
               <button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg animate__animated animate__pulse animate__infinite animate__slow"
+                disabled={!canAddParcelOut}
+                className={`bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg ${
+                  canAddParcelOut
+                    ? "animate__animated animate__pulse animate__infinite animate__slow"
+                    : "opacity-50 cursor-not-allowed"
+                }`}
               >
-                <Plus className="w-5 h-5" /> Add Item
+                <Plus className="w-5 h-5" /> Out Item
               </button>
             </div>
           </form>

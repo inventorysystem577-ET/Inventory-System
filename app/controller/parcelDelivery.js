@@ -1,67 +1,63 @@
 import { supabase } from "../../lib/supabaseClient";
 
+// controller
 /**
- * Insert a new item into parcel_out table
- * @param {Object} item - { item_name, date, quantity, time_out }
+ * Insert a new parcel-out item and decrement stock
  */
-export const addParcelOutItem = async (item) => {
-  console.log("ITEM RECEIVED:", item);
+export const addParcelOutItem = async ({
+  item_name,
+  date,
+  quantity,
+  time_out,
+}) => {
+  try {
+    // 1️⃣ Check available stock
+    const { data: inItem, error: inError } = await supabase
+      .from("parcel_in")
+      .select("id, quantity")
+      .eq("name", item_name)
+      .single();
 
-  const { data, error } = await supabase
-    .from("parcel_out")
-    .insert([
-      {
-        item_name: item.item_name,
-        date: item.date,
-        quantity: Number(item.quantity),
-        time_out: item.time_out,
-      },
-    ])
-    .select();
+    if (inError) throw inError;
+    if (!inItem) throw new Error("Item not found in stock");
+    if (inItem.quantity < quantity)
+      throw new Error("Not enough stock available");
 
-  console.log("SUPABASE INSERT DATA:", data);
-  console.log("SUPABASE INSERT ERROR:", error);
+    // 2️⃣ Insert parcel-out
+    const { data: outData, error: outError } = await supabase
+      .from("parcel_out")
+      .insert([{ item_name, date, quantity: Number(quantity), time_out }])
+      .select()
+      .single();
+    if (outError) throw outError;
 
-  if (error) return { error };
-  return { data };
+    // 3️⃣ Decrement parcel-in stock
+    const { error: updateError } = await supabase
+      .from("parcel_in")
+      .update({ quantity: inItem.quantity - Number(quantity) })
+      .eq("id", inItem.id);
+
+    if (updateError) throw updateError;
+
+    return { data: outData };
+  } catch (err) {
+    return { error: err };
+  }
 };
 
 /**
- * Fetch all items from parcel_out table
+ * Fetch all parcel-out items
  */
 export const getParcelOutItems = async () => {
   const { data, error } = await supabase
     .from("parcel_out")
     .select("*")
     .order("id", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching parcel out items:", error);
-    return { error };
-  }
-
-  return { data };
+  return error ? { error } : { data };
 };
 
 /**
- * Delete a parcel_out item by id
- */
-export const deleteParcelOutItem = async (id) => {
-  const { data, error } = await supabase
-    .from("parcel_out")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    console.error("Error deleting parcel out item:", error);
-    return { error };
-  }
-
-  return { data };
-};
-
-/**
- * Update a parcel_out item by id
+ * Update a parcel-out item
  */
 export const updateParcelOutItem = async (id, updates) => {
   const { data, error } = await supabase
@@ -69,11 +65,16 @@ export const updateParcelOutItem = async (id, updates) => {
     .update(updates)
     .eq("id", id)
     .select();
+  return error ? { error } : { data };
+};
 
-  if (error) {
-    console.error("Error updating parcel out item:", error);
-    return { error };
-  }
-
-  return { data };
+/**
+ * Delete a parcel-out item
+ */
+export const deleteParcelOutItem = async (id) => {
+  const { data, error } = await supabase
+    .from("parcel_out")
+    .delete()
+    .eq("id", id);
+  return error ? { error } : { data };
 };

@@ -2,14 +2,13 @@
 import {
   BarChart3,
   Package,
-  FolderOpen,
+  PackageOpen,
   Activity,
   Users,
   LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { handleLogout } from "../controller/logoutController";
-import { handleFormSubmit } from "../utils/formHandlers";
 
 export default function Sidebar({
   sidebarOpen,
@@ -29,23 +28,22 @@ export default function Sidebar({
     },
     {
       id: "Parcel Shipped",
-      label: "Parcel Shipped",
+      label: "Stock In",
       icon: Package,
       path: "/parcel-shipped",
     },
     {
       id: "Parcel Delivery",
-      label: "Parcel Delivery",
-      icon: FolderOpen,
+      label: "Stock Out",
+      icon: PackageOpen,
       path: "/parcel-delivery",
     },
     {
-      id: "Out of Stock",
-      label: "Out of Stock",
+      id: "Inventory Stock",
+      label: "Inventory",
       icon: Activity,
       path: "/out-of-stock",
     },
-    { id: "users", label: "Users", icon: Users, path: "/users" },
   ];
 
   const handleMenuClick = (id, path) => {
@@ -57,6 +55,15 @@ export default function Sidebar({
     // Close sidebar on mobile after clicking
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
+    }
+  };
+
+  const handleLogoutClick = async () => {
+    try {
+      await handleLogout();
+      window.location.href = "/";
+    } catch (err) {
+      alert(err.message || "Logout failed");
     }
   };
 
@@ -105,17 +112,7 @@ export default function Sidebar({
               }`}
             >
               <button
-                onClick={(e) =>
-                  handleFormSubmit({
-                    e,
-                    controllerFn: handleLogout,
-                    onSuccess: () => {
-                      // Redirect to login page after logout
-                      window.location.href = "/";
-                    },
-                    onError: (err) => alert(err.message),
-                  })
-                }
+                onClick={handleLogoutClick}
                 className={`w-full flex items-center space-x-3 sm:space-x-4 lg:space-x-3 px-4 sm:px-5 lg:px-4 py-3 sm:py-3.5 lg:py-3 rounded-lg transition-all text-base sm:text-lg lg:text-base cursor-pointer ${
                   darkMode
                     ? "text-red-400 hover:bg-red-900/20"
