@@ -40,3 +40,14 @@ export const addParcelItem = async ({ item_name, date, quantity, time_in }) => {
     return null;
   }
 };
+
+// High-level handler moved out of page: accepts form pieces, creates time string and adds item
+export const handleAddParcelIn = async ({ name, date, quantity, timeHour, timeMinute, timeAMPM }) => {
+  const timeString = `${timeHour}:${timeMinute} ${timeAMPM}`;
+  const newItem = await addParcelItem({ item_name: name, date, quantity: Number(quantity), time_in: timeString });
+  if (!newItem) return null;
+
+  // Return newly added item and refreshed list
+  const items = await fetchParcelItems();
+  return { newItem, items };
+};

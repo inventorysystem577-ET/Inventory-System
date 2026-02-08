@@ -6,10 +6,7 @@ import TopNavbar from "../components/TopNavbar";
 import Sidebar from "../components/Sidebar";
 import { PackageOpen, Plus, Clock, Calendar, Package } from "lucide-react";
 import "animate.css";
-import {
-  fetchParcelOutItems,
-  addParcelOutItemHelper,
-} from "../utils/parcelOutHelper";
+import { fetchParcelOutItems, handleAddParcelOut } from "../utils/parcelOutHelper";
 import { fetchParcelItems } from "../utils/parcelShippedHelper";
 
 export default function Page() {
@@ -56,24 +53,20 @@ export default function Page() {
     e.preventDefault();
     if (!selectedItemId) return;
 
-    const time_out = `${timeHour}:${timeMinute} ${timeAMPM}`;
-
-    // Call the helper - ang validation ay nasa helper na
-    const newItem = await addParcelOutItemHelper({
+    const result = await handleAddParcelOut({
       item_name: selectedItemId,
       date,
       quantity: Number(quantity),
-      time_out,
+      timeHour,
+      timeMinute,
+      timeAMPM,
     });
 
-    if (!newItem) return; // May error, nag-alert na sa helper
+    if (!result || !result.newItem) return;
 
-    // ✅ Success! Update UI
-    setItems([...items, newItem]);
-
-    // ✅ Reload available items para updated ang stock
-    const updatedItems = await fetchParcelItems();
-    setAvailableItems(updatedItems);
+    // Update UI from returned lists
+    setItems(result.updatedOut || []);
+    setAvailableItems(result.updatedIn || []);
 
     alert(
       `✅ Successfully created Parcel Out!\n` +

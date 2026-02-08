@@ -1,4 +1,4 @@
-import { supabase } from "../../../../lib/supabaseClient";
+import { login } from "../../../models/authModel";
 
 export async function POST(req) {
   try {
@@ -8,23 +8,16 @@ export async function POST(req) {
       return new Response("Missing email or password", { status: 400 });
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      return new Response("Invalid email or password", { status: 401 });
-    }
+    const data = await login({ email, password });
 
     return new Response(
       JSON.stringify({
         message: "Login Successful",
         user: data.user,
-        session: data.session, // contains access_token and refresh_token
+        session: data.session,
       }),
     );
   } catch (error) {
-    return new Response(error.message, { status: 500 });
+    return new Response(error.message || "Server error", { status: 500 });
   }
 }

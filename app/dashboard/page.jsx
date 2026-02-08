@@ -18,8 +18,8 @@ import {
 
 import "animate.css";
 
-import { getParcelInItems } from "../controller/parcelShipped"; // parcel_in
-import { getParcelOutItems } from "../controller/parcelDelivery"; // parcel_out
+import { fetchParcelItems } from "../utils/parcelShippedHelper"; // parcel_in (client helper)
+import { fetchParcelOutItems } from "../utils/parcelOutHelper"; // parcel_out (client helper)
 
 export default function page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -101,37 +101,26 @@ export default function page() {
     if (savedDarkMode !== null) setDarkMode(savedDarkMode === "true");
 
     const fetchData = async () => {
-      const shippedRes = await getParcelInItems();
-      const deliveryRes = await getParcelOutItems();
+      const shippedRes = await fetchParcelItems();
+      const deliveryRes = await fetchParcelOutItems();
 
-      if (!shippedRes.error) {
-        setParcelShipped(shippedRes.data);
-        setStockItems(shippedRes.data);
+      setParcelShipped(shippedRes || []);
+      setStockItems(shippedRes || []);
 
-        // Calculate status counts from parcel_in
-        const counts = {
-          out: 0,
-          critical: 0,
-          low: 0,
-          available: 0,
-        };
+      // Calculate status counts from parcel_in
+      const counts = { out: 0, critical: 0, low: 0, available: 0 };
+      (shippedRes || []).forEach((item) => {
+        const status = getStockStatus(item.quantity);
+        counts[status]++;
+      });
 
-        shippedRes.data?.forEach((item) => {
-          const status = getStockStatus(item.quantity);
-          counts[status]++;
-        });
+      setStatusCounts(counts);
 
-        setStatusCounts(counts);
+      const itemsWithStock = (shippedRes || []).filter((item) => item.quantity > 0).length || 0;
+      setParcelShippedCount(itemsWithStock);
 
-        // Count only items with quantity > 0 for Stock In
-        const itemsWithStock =
-          shippedRes.data?.filter((item) => item.quantity > 0).length || 0;
-        setParcelShippedCount(itemsWithStock);
-      }
-
-      if (!deliveryRes.error) setParcelDelivery(deliveryRes.data);
-
-      setParcelDeliveryCount(deliveryRes.data?.length || 0);
+      setParcelDelivery(deliveryRes || []);
+      setParcelDeliveryCount((deliveryRes || []).length || 0);
     };
 
     fetchData();

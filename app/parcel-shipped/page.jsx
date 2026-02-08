@@ -14,7 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import "animate.css";
-import { fetchParcelItems, addParcelItem } from "../utils/parcelShippedHelper";
+import { fetchParcelItems, handleAddParcelIn } from "../utils/parcelShippedHelper";
 
 export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,16 +51,19 @@ export default function Page() {
 
   const handleAddItem = async (e) => {
     e.preventDefault();
-    const timeString = `${timeHour}:${timeMinute} ${timeAMPM}`;
-    const newItem = await addParcelItem({
-      item_name: name,
+    const result = await handleAddParcelIn({
+      name,
       date,
-      quantity: Number(quantity),
-      time_in: timeString,
+      quantity,
+      timeHour,
+      timeMinute,
+      timeAMPM,
     });
-    if (!newItem) return;
+    if (!result || !result.newItem) return;
 
-    await loadItems();
+    // Update UI from refreshed list
+    setItems(result.items.filter((item) => item.quantity > 0).sort((a, b) => b.quantity - a.quantity));
+
     setName("");
     setDate("");
     setQuantity(1);
