@@ -451,7 +451,7 @@ export default function page() {
                                     : "bg-yellow-500"
                               } animate__animated animate__pulse animate__infinite`}
                             />
-                            {item.item_name}
+                            {item.name}
                           </div>
                         </td>
                         <td
@@ -533,7 +533,7 @@ export default function page() {
                         style={{ animationDelay: `${index * 0.05}s` }}
                       >
                         <td className="px-6 py-4 whitespace-nowrap font-medium">
-                          {item.item_name}
+                          {item.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {item.quantity}
@@ -543,7 +543,7 @@ export default function page() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                           <Clock className="w-4 h-4 opacity-50" />
-                          {item.time_in}
+                          {item.timeIn}
                         </td>
                       </tr>
                     ))}
@@ -596,7 +596,7 @@ export default function page() {
                         style={{ animationDelay: `${index * 0.05}s` }}
                       >
                         <td className="px-6 py-4 whitespace-nowrap font-medium">
-                          {item.item_name}
+                          {item.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {item.quantity}
@@ -606,7 +606,7 @@ export default function page() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                           <Clock className="w-4 h-4 opacity-50" />
-                          {item.time_out}
+                          {item.timeOut}
                         </td>
                       </tr>
                     ))}
