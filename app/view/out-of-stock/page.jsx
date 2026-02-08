@@ -3,13 +3,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import TopNavbar from "../../components/TopNavbar";
 import Sidebar from "../../components/Sidebar";
+import TopNavbar from "../../components/TopNavbar";
 import { Package, AlertTriangle, TrendingDown, XCircle } from "lucide-react";
 import "animate.css";
 
 // Import helper
-import { fetchParcelItems } from "../../utils/parcelShippedHelper"; // parcel-in
+import { fetchParcelItems } from "../../utils/parcelShippedHelper";
 
 export default function Page() {
   const searchParams = useSearchParams();

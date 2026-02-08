@@ -173,7 +173,7 @@ export default function page() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             {/* Stock In - Royal Blue */}
             <div
-              onClick={() => handleCardClick("/parcel-shipped")}
+              onClick={() => handleCardClick("/view/parcel-shipped")}
               className="bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
             >
               <div className="flex items-center justify-between mb-2">
@@ -188,7 +188,7 @@ export default function page() {
 
             {/* Stock Out - Orange */}
             <div
-              onClick={() => handleCardClick("/parcel-delivery")}
+              onClick={() => handleCardClick("/view/parcel-delivery")}
               className="bg-gradient-to-br from-[#ea580c] to-[#c2410c] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
               style={{ animationDelay: "0.1s" }}
             >
@@ -204,7 +204,7 @@ export default function page() {
 
             {/* Total Items - Black/Dark Blue */}
             <div
-              onClick={() => handleCardClick("/out-of-stock")}
+              onClick={() => handleCardClick("/view/out-of-stock")}
               className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
               style={{ animationDelay: "0.2s" }}
             >
@@ -221,7 +221,7 @@ export default function page() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Out of Stock */}
             <div
-              onClick={() => handleCardClick("/out-of-stock", "out")}
+              onClick={() => handleCardClick("/view/out-of-stock", "out")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
@@ -252,7 +252,7 @@ export default function page() {
 
             {/* Critical Level - Orange */}
             <div
-              onClick={() => handleCardClick("/out-of-stock", "critical")}
+              onClick={() => handleCardClick("/view/out-of-stock", "critical")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
@@ -283,7 +283,7 @@ export default function page() {
 
             {/* Low Stock */}
             <div
-              onClick={() => handleCardClick("/out-of-stock", "low")}
+              onClick={() => handleCardClick("/view/out-of-stock", "low")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
@@ -314,7 +314,7 @@ export default function page() {
 
             {/* Available - Royal Blue */}
             <div
-              onClick={() => handleCardClick("/out-of-stock", "available")}
+              onClick={() => handleCardClick("/view/out-of-stock", "available")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
