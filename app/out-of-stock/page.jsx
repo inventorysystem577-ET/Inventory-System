@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import TopNavbar from "../components/TopNavbar";
 import Sidebar from "../components/Sidebar";
 import { Package, AlertTriangle, TrendingDown, XCircle } from "lucide-react";
@@ -11,11 +12,14 @@ import "animate.css";
 import { fetchParcelItems } from "../utils/parcelShippedHelper"; // parcel-in
 
 export default function Page() {
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get("status");
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("stock-inventory");
   const [darkMode, setDarkMode] = useState(false);
   const [items, setItems] = useState([]); // all items from parcel_in
-  const [filterStatus, setFilterStatus] = useState("all"); // all, available, low, critical, out
+  const [filterStatus, setFilterStatus] = useState(statusParam || "all"); // all, available, low, critical, out
 
   // Helper to get stock status
   const getStockStatus = (quantity) => {
@@ -87,6 +91,13 @@ export default function Page() {
 
     loadItems();
   }, []);
+
+  // Update filter when status param changes
+  useEffect(() => {
+    if (statusParam) {
+      setFilterStatus(statusParam);
+    }
+  }, [statusParam]);
 
   // Filter items based on selected status
   const filteredItems = items.filter((item) => {

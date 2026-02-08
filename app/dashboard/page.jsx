@@ -126,8 +126,12 @@ export default function page() {
     fetchData();
   }, []);
 
-  const handleCardClick = (route) => {
-    router.push(route);
+  const handleCardClick = (route, status = null) => {
+    if (status) {
+      router.push(`${route}?status=${status}`);
+    } else {
+      router.push(route);
+    }
   };
 
   // Get items that need attention (out of stock, critical, or low)
@@ -216,7 +220,7 @@ export default function page() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Out of Stock */}
             <div
-              onClick={() => handleCardClick("/out-of-stock")}
+              onClick={() => handleCardClick("/out-of-stock", "out")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
@@ -247,7 +251,7 @@ export default function page() {
 
             {/* Critical Level - Orange */}
             <div
-              onClick={() => handleCardClick("/out-of-stock")}
+              onClick={() => handleCardClick("/out-of-stock", "critical")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
@@ -278,7 +282,7 @@ export default function page() {
 
             {/* Low Stock */}
             <div
-              onClick={() => handleCardClick("/out-of-stock")}
+              onClick={() => handleCardClick("/out-of-stock", "low")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
@@ -309,7 +313,7 @@ export default function page() {
 
             {/* Available - Royal Blue */}
             <div
-              onClick={() => handleCardClick("/out-of-stock")}
+              onClick={() => handleCardClick("/out-of-stock", "available")}
               className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
                 darkMode
                   ? "bg-gray-800 border border-gray-700"
