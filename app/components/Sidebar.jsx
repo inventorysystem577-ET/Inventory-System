@@ -24,25 +24,25 @@ export default function Sidebar({
       id: "Dashboard",
       label: "Dashboard",
       icon: BarChart3,
-      path: "/dashboard",
+      path: "/view/dashboard",
     },
     {
       id: "Parcel Shipped",
       label: "Stock In",
       icon: Package,
-      path: "/parcel-shipped",
+      path: "/view/parcel-shipped",
     },
     {
       id: "Parcel Delivery",
       label: "Stock Out",
       icon: PackageOpen,
-      path: "/parcel-delivery",
+      path: "/view/parcel-delivery",
     },
     {
       id: "Inventory Stock",
       label: "Inventory",
       icon: Activity,
-      path: "/out-of-stock",
+      path: "/view/out-of-stock",
     },
   ];
 

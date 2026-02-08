@@ -1,39 +1,34 @@
-// app/register/page.jsx
+// app/forgot-password/page.jsx
 "use client";
 
+// ✅ CRITICAL: This forces Vercel to include this route in production
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import Image from "next/image";
 
-import WelcomeIcon from "../components/WelcomeIcon";
-import RegisterHeader from "../components/RegisterHeader";
-import RegisterForm from "../components/RegisterForm";
-import { handleFormSubmit } from "../utils/formHandlers";
-import { handleSubmitRegister } from "../controller/registerController";
+import WelcomeIcon from "../../components/WelcomeIcon";
+import ResetPasswordHeader from "../../components/ResetPasswordHeader";
+import ForgotPasswordForm from "../../components/ForgotPassword";
+import { handleForgotPassword } from "../../controller/forgotController";
+import { handleFormSubmit } from "../../utils/formHandlers";
 
-export default function RegisterPage() {
-  const [name, setName] = useState("");
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
 
   const onSubmit = (e) => {
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-
     handleFormSubmit({
       e,
-      controllerFn: handleSubmitRegister,
-      data: { name, email, password, role },
+      controllerFn: handleForgotPassword,
+      data: { email },
       setLoading,
       onSuccess: (response) => {
-        alert(response.message || "Account Created successfully!");
-        window.location.href = "/";
+        setSuccess(
+          response.message || "Password reset link sent! Check your email.",
+        );
+        setEmail("");
       },
       onError: (error) => alert(error.message),
     });
@@ -62,25 +57,24 @@ export default function RegisterPage() {
 
           {/* Header */}
           <div className="animate__animated animate__fadeInDown animate__slow mb-2">
-            <RegisterHeader />
+            <ResetPasswordHeader />
           </div>
 
           {/* Form */}
           <div className="animate__animated animate__fadeInUp animate__slow mb-4">
-            <RegisterForm
-              name={name}
-              setName={setName}
+            <ForgotPasswordForm
               email={email}
               setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
-              confirmPassword={confirmPassword}
-              setConfirmPassword={setConfirmPassword}
-              role={role}
-              setRole={setRole}
               onSubmit={onSubmit}
               loading={loading}
             />
+
+            {/* Success Message */}
+            {success && (
+              <p className="text-green-500 text-center mt-4 font-medium">
+                {success}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -67,7 +67,7 @@ export default function LoginComponents({
       {/* Forgot password */}
       <div className="flex justify-end">
         <Link
-          href="/forgot-password"
+          href="/view/forgot-password"
           className="text-sm font-medium text-blue-400 md:text-blue-600 hover:text-blue-500 md:hover:text-blue-700"
         >
           Forgot password?
@@ -87,7 +87,7 @@ export default function LoginComponents({
       <p className="text-center text-sm text-gray-400 md:text-gray-600">
         Don’t have an account?{" "}
         <Link
-          href="/register"
+          href="/view/register"
           className="font-medium text-blue-400 md:text-blue-600 hover:text-blue-500 md:hover:text-blue-700"
         >
           Register

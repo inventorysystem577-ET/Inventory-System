@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import TopNavbar from "../components/TopNavbar";
-import Sidebar from "../components/Sidebar";
+import TopNavbar from "../../components/TopNavbar";
+import Sidebar from "../../components/Sidebar";
 import {
   PackageCheck,
   Plus,
@@ -14,7 +14,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import "animate.css";
-import { fetchParcelItems, handleAddParcelIn } from "../utils/parcelShippedHelper";
+import {
+  fetchParcelItems,
+  handleAddParcelIn,
+} from "../../utils/parcelShippedHelper";
 
 export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -62,7 +65,11 @@ export default function Page() {
     if (!result || !result.newItem) return;
 
     // Update UI from refreshed list
-    setItems(result.items.filter((item) => item.quantity > 0).sort((a, b) => b.quantity - a.quantity));
+    setItems(
+      result.items
+        .filter((item) => item.quantity > 0)
+        .sort((a, b) => b.quantity - a.quantity),
+    );
 
     setName("");
     setDate("");

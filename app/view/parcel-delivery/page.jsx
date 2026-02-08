@@ -2,12 +2,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import TopNavbar from "../components/TopNavbar";
-import Sidebar from "../components/Sidebar";
+import TopNavbar from "../../components/TopNavbar";
+import Sidebar from "../../components/Sidebar";
 import { PackageOpen, Plus, Clock, Calendar, Package } from "lucide-react";
 import "animate.css";
-import { fetchParcelOutItems, handleAddParcelOut } from "../utils/parcelOutHelper";
-import { fetchParcelItems } from "../utils/parcelShippedHelper";
+import {
+  fetchParcelOutItems,
+  handleAddParcelOut,
+} from "../../utils/parcelOutHelper";
+import { fetchParcelItems } from "../../utils/parcelShippedHelper";
 
 export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);

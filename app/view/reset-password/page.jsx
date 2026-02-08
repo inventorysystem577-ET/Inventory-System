@@ -5,11 +5,11 @@ import { Suspense } from "react";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import WelcomeIcon from "../components/WelcomeIcon";
-import ResetPasswordFormComponent from "../components/ResetPasswordForm";
-import ResetPasswordHeader from "../components/ResetPasswordHeader";
-import { handleResetPassword } from "../controller/resetPasswordController";
-import { handleFormSubmit } from "../utils/formHandlers";
+import WelcomeIcon from "../../components/WelcomeIcon";
+import ResetPasswordFormComponent from "../../components/ResetPasswordForm";
+import ResetPasswordHeader from "../../components/ResetPasswordHeader";
+import { handleResetPassword } from "../../controller/resetPasswordController";
+import { handleFormSubmit } from "../../utils/formHandlers";
 
 // ✅ Force dynamic rendering to avoid pre-rendering issues
 export const dynamic = "force-dynamic";
