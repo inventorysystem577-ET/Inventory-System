@@ -44,6 +44,18 @@ export default function page() {
 
   useAuth();
 
+  // Helper to convert 24-hour time to 12-hour format
+  const convertTo12Hour = (time24) => {
+    if (!time24) return "";
+
+    const [hours, minutes] = time24.split(":");
+    const hour = parseInt(hours, 10);
+    const period = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 || 12;
+
+    return `${hour12}:${minutes} ${period}`;
+  };
+
   // Helper to get stock status
   const getStockStatus = (quantity) => {
     if (quantity === 0) return "out";
@@ -548,7 +560,7 @@ export default function page() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                           <Clock className="w-4 h-4 opacity-50" />
-                          {item.timeIn}
+                          {convertTo12Hour(item.timeIn)}
                         </td>
                       </tr>
                     ))}
@@ -611,7 +623,7 @@ export default function page() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                           <Clock className="w-4 h-4 opacity-50" />
-                          {item.timeOut}
+                          {convertTo12Hour(item.timeOut)}
                         </td>
                       </tr>
                     ))}

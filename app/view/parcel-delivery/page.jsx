@@ -49,8 +49,38 @@ export default function Page() {
       setAvailableItems(inItems);
     };
 
+    const now = new Date();
+    let hour = now.getHours();
+    const minute = now.getMinutes();
+    const ampm = hour >= 12 ? "PM" : "AM";
+
+    // convert to 12-hour format
+    hour = hour % 12;
+    hour = hour ? hour : 12; // 0 becomes 12
+
+    const formattedMinute = minute < 10 ? `0${minute}` : `${minute}`;
+
+    setTimeHour(hour.toString());
+    setTimeMinute(formattedMinute);
+    setTimeAMPM(ampm);
     loadItems();
   }, []);
+
+  const formatTo12Hour = (time) => {
+    if (!time) return "";
+
+    // if may AM/PM na wag na galawin
+    if (time.includes("AM") || time.includes("PM")) return time;
+
+    const [hourStr, minute] = time.split(":");
+    let hour = parseInt(hourStr);
+
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12;
+    hour = hour ? hour : 12;
+
+    return `${hour}:${minute} ${ampm}`;
+  };
 
   const handleAddItem = async (e) => {
     e.preventDefault();
@@ -126,7 +156,6 @@ export default function Page() {
         }`}
       >
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-          {/* Page Header */}
           {/* Header */}
           <div className="mb-10 animate__animated animate__fadeInDown animate__faster">
             <div className="flex items-center justify-center gap-4 mb-2">
@@ -474,7 +503,7 @@ export default function Page() {
                       >
                         <div className="flex items-center gap-2">
                           <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-50" />
-                          {item.timeOut}
+                          {formatTo12Hour(item.timeOut)}
                         </div>
                       </td>
                     </tr>

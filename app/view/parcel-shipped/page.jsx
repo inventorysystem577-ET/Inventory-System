@@ -39,6 +39,21 @@ export default function Page() {
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
     if (savedDarkMode !== null) setDarkMode(savedDarkMode === "true");
+
+    const now = new Date();
+    let hour = now.getHours();
+    const minute = now.getMinutes();
+    const ampm = hour >= 12 ? "PM" : "AM";
+
+    // convert to 12-hour format
+    hour = hour % 12;
+    hour = hour ? hour : 12; // 0 becomes 12
+
+    const formattedMinute = minute < 10 ? `0${minute}` : `${minute}`;
+
+    setTimeHour(hour.toString());
+    setTimeMinute(formattedMinute);
+    setTimeAMPM(ampm);
     loadItems();
   }, []);
 
@@ -50,6 +65,22 @@ export default function Page() {
       .filter((item) => item.quantity > 0)
       .sort((a, b) => b.quantity - a.quantity);
     setItems(sortedData);
+  };
+
+  const formatTo12Hour = (time) => {
+    if (!time) return "";
+
+    // if may AM/PM na wag na galawin
+    if (time.includes("AM") || time.includes("PM")) return time;
+
+    const [hourStr, minute] = time.split(":");
+    let hour = parseInt(hourStr);
+
+    const ampm = hour >= 12 ? "PM" : "AM";
+    hour = hour % 12;
+    hour = hour ? hour : 12;
+
+    return `${hour}:${minute} ${ampm}`;
   };
 
   const handleAddItem = async (e) => {
@@ -449,7 +480,7 @@ export default function Page() {
                         <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <Clock size={14} className="sm:w-4 sm:h-4" />{" "}
-                            {item.timeIn}
+                            {formatTo12Hour(item.timeIn)}
                           </div>
                         </td>
                       </tr>
