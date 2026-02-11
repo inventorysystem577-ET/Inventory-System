@@ -166,16 +166,16 @@ export default function Page() {
     <div
       className={
         darkMode
-          ? "dark min-h-screen bg-gray-900 text-white"
-          : "min-h-screen bg-gray-50 text-black"
+          ? "dark min-h-screen bg-[#0B0B0B] text-white"
+          : "min-h-screen bg-[#F9FAFB] text-black"
       }
     >
       {/* Navbar */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b shadow-sm animate__animated animate__fadeInDown animate__faster ${
           darkMode
-            ? "bg-gray-800/90 border-gray-700"
-            : "bg-white/90 border-gray-300"
+            ? "bg-[#111827]/90 border-[#374151]"
+            : "bg-white/90 border-[#E5E7EB]"
         }`}
       >
         <TopNavbar
@@ -207,24 +207,26 @@ export default function Page() {
             <div className="flex items-center justify-center gap-4 mb-2">
               <div
                 className={`flex-1 h-[2px] ${
-                  darkMode ? "bg-gray-700" : "bg-gray-300"
+                  darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"
                 }`}
               ></div>
               <div className="flex items-center gap-2 px-3">
                 <PackageCheck
                   className={`w-6 h-6 ${
-                    darkMode ? "text-blue-400" : "text-blue-600"
+                    darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"
                   }`}
                 />
                 <h1 className="text-3xl font-bold tracking-wide">Stock In</h1>
               </div>
               <div
                 className={`flex-1 h-[2px] ${
-                  darkMode ? "bg-gray-700" : "bg-gray-300"
+                  darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"
                 }`}
               ></div>
             </div>
-            <p className="text-center text-sm opacity-70">
+            <p
+              className={`text-center text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+            >
               Record new items delivered to your inventory
             </p>
           </div>
@@ -234,14 +236,14 @@ export default function Page() {
             onSubmit={handleAddItem}
             className={`p-6 rounded-xl shadow-lg mb-8 border transition animate__animated animate__fadeInUp animate__faster ${
               darkMode
-                ? "bg-gray-800 border-gray-700 text-white"
-                : "bg-white border-gray-200 text-gray-900"
+                ? "bg-[#1F2937] border-[#374151] text-white"
+                : "bg-white border-[#E5E7EB] text-[#111827]"
             }`}
           >
             <div className="flex items-center gap-2 mb-6">
               <Plus
                 className={`w-5 h-5 ${
-                  darkMode ? "text-blue-400" : "text-blue-600"
+                  darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"
                 }`}
               />
               <h2 className={`text-lg font-semibold`}>Add New Item</h2>
@@ -252,7 +254,7 @@ export default function Page() {
               <div>
                 <label
                   className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
-                    darkMode ? "text-gray-300" : "text-gray-700"
+                    darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                   }`}
                 >
                   <Package className="w-4 h-4" /> Item Name
@@ -264,8 +266,8 @@ export default function Page() {
                   onChange={(e) => setName(e.target.value)}
                   className={`border rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                     darkMode
-                      ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white placeholder-gray-400"
-                      : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black placeholder-gray-400"
+                      ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white placeholder-[#6B7280]"
+                      : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black placeholder-[#9CA3AF]"
                   }`}
                   required
                 />
@@ -275,7 +277,7 @@ export default function Page() {
               <div>
                 <label
                   className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
-                    darkMode ? "text-gray-300" : "text-gray-700"
+                    darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                   }`}
                 >
                   <Calendar className="w-4 h-4" /> Date
@@ -286,8 +288,8 @@ export default function Page() {
                   onChange={(e) => setDate(e.target.value)}
                   className={`border rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                     darkMode
-                      ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
-                      : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black"
+                      ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                      : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
                   }`}
                   required
                 />
@@ -297,7 +299,7 @@ export default function Page() {
               <div>
                 <label
                   className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
-                    darkMode ? "text-gray-300" : "text-gray-700"
+                    darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                   }`}
                 >
                   <Package className="w-4 h-4" /> Quantity
@@ -309,8 +311,8 @@ export default function Page() {
                   onChange={(e) => setQuantity(e.target.value)}
                   className={`border rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                     darkMode
-                      ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
-                      : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black"
+                      ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                      : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
                   }`}
                   required
                 />
@@ -320,7 +322,7 @@ export default function Page() {
               <div>
                 <label
                   className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
-                    darkMode ? "text-gray-300" : "text-gray-700"
+                    darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                   }`}
                 >
                   <Clock className="w-4 h-4" /> Time In
@@ -331,8 +333,8 @@ export default function Page() {
                     onChange={(e) => setTimeHour(e.target.value)}
                     className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                       darkMode
-                        ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
-                        : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black"
+                        ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
                     }`}
                   >
                     {Array.from({ length: 12 }, (_, i) => (
@@ -346,8 +348,8 @@ export default function Page() {
                     onChange={(e) => setTimeMinute(e.target.value)}
                     className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                       darkMode
-                        ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
-                        : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black"
+                        ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
                     }`}
                   >
                     {Array.from({ length: 60 }, (_, i) => {
@@ -364,8 +366,8 @@ export default function Page() {
                     onChange={(e) => setTimeAMPM(e.target.value)}
                     className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                       darkMode
-                        ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
-                        : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black"
+                        ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
                     }`}
                   >
                     <option>AM</option>
@@ -379,7 +381,7 @@ export default function Page() {
             <div className="flex justify-end mt-6">
               <button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
+                className="bg-[#1E3A8A] hover:bg-[#1D4ED8] text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
               >
                 <Plus className="w-5 h-5" /> Add Item
               </button>
@@ -389,13 +391,19 @@ export default function Page() {
           {/* Stats */}
           <div
             className={`mb-6 flex justify-between p-4 rounded-lg shadow animate__animated animate__fadeInUp animate__fast ${
-              darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+              darkMode
+                ? "bg-[#1F2937] text-white border border-[#374151]"
+                : "bg-white text-[#111827] border border-[#E5E7EB]"
             }`}
           >
-            <div>Total Items: {items.length}</div>
-            <div>
+            <div className="font-medium">
+              Total Items: <span className="font-bold">{items.length}</span>
+            </div>
+            <div className="font-medium">
               Total Quantity:{" "}
-              {items.reduce((sum, item) => sum + Number(item.quantity), 0)}
+              <span className="font-bold">
+                {items.reduce((sum, item) => sum + Number(item.quantity), 0)}
+              </span>
             </div>
           </div>
 
@@ -403,8 +411,8 @@ export default function Page() {
           <div
             className={`rounded-xl shadow-xl overflow-hidden border transition animate__animated animate__fadeInUp animate__fast ${
               darkMode
-                ? "bg-gray-800 border-gray-700"
-                : "bg-white border-gray-200"
+                ? "bg-[#1F2937] border-[#374151]"
+                : "bg-white border-[#E5E7EB]"
             }`}
           >
             <div className="overflow-x-auto">
@@ -412,8 +420,8 @@ export default function Page() {
                 <thead
                   className={`${
                     darkMode
-                      ? "bg-gray-700 text-gray-200"
-                      : "bg-gray-100 text-gray-700"
+                      ? "bg-[#111827] text-[#D1D5DB]"
+                      : "bg-[#F9FAFB] text-[#374151]"
                   }`}
                 >
                   <tr>
@@ -429,17 +437,21 @@ export default function Page() {
                     )}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody
+                  className={darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}
+                >
                   {currentItems.length === 0 ? (
                     <tr>
                       <td
                         colSpan="4"
                         className={`text-center p-8 sm:p-12 ${
-                          darkMode ? "text-gray-400" : "text-gray-500"
+                          darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                         } animate__animated animate__fadeIn`}
                       >
                         <PackageCheck
-                          className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__fadeIn`}
+                          className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__fadeIn ${
+                            darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
+                          }`}
                         />
                         <p className="text-base sm:text-lg font-medium mb-1">
                           No items added yet
@@ -455,8 +467,8 @@ export default function Page() {
                         key={item.id}
                         className={`border-t transition animate__animated animate__fadeIn animate__faster ${
                           darkMode
-                            ? "border-gray-700 hover:bg-gray-700/40"
-                            : "border-gray-200 hover:bg-gray-50"
+                            ? "border-[#374151] hover:bg-[#374151]/40"
+                            : "border-[#E5E7EB] hover:bg-[#F3F4F6]"
                         }`}
                         style={{ animationDelay: `${index * 0.03}s` }}
                       >
@@ -470,8 +482,8 @@ export default function Page() {
                           <span
                             className={`px-2 sm:px-3 py-1 rounded-lg font-bold text-xs sm:text-sm ${
                               darkMode
-                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                : "bg-green-100 text-green-700 border border-green-200"
+                                ? "bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30"
+                                : "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]"
                             }`}
                           >
                             {item.quantity}
@@ -494,12 +506,12 @@ export default function Page() {
             {items.length > 5 && (
               <div
                 className={`flex items-center justify-between px-4 py-3 border-t ${
-                  darkMode ? "border-gray-700" : "border-gray-200"
+                  darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                    className={`text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
                   >
                     Showing {indexOfFirstItem + 1} to{" "}
                     {Math.min(indexOfLastItem, items.length)} of {items.length}{" "}
@@ -515,11 +527,11 @@ export default function Page() {
                     className={`p-2 rounded-lg transition-all ${
                       currentPage === 1
                         ? darkMode
-                          ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                          : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
                         : darkMode
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                          : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
                     }`}
                   >
                     <ChevronLeft className="w-5 h-5" />
@@ -532,7 +544,7 @@ export default function Page() {
                         <span
                           key={`ellipsis-${idx}`}
                           className={`px-3 py-2 ${
-                            darkMode ? "text-gray-400" : "text-gray-600"
+                            darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                           }`}
                         >
                           ...
@@ -543,10 +555,10 @@ export default function Page() {
                           onClick={() => paginate(pageNum)}
                           className={`px-3 py-2 rounded-lg font-medium transition-all ${
                             currentPage === pageNum
-                              ? "bg-blue-600 text-white shadow-md"
+                              ? "bg-[#1E3A8A] text-white shadow-md"
                               : darkMode
-                                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                                : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
                           }`}
                         >
                           {pageNum}
@@ -562,11 +574,11 @@ export default function Page() {
                     className={`p-2 rounded-lg transition-all ${
                       currentPage === totalPages
                         ? darkMode
-                          ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                          : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
                         : darkMode
-                          ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                          : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
                     }`}
                   >
                     <ChevronRight className="w-5 h-5" />

@@ -66,7 +66,7 @@ function ResetPasswordContent() {
       <WelcomeIcon />
 
       {/* 📱 MOBILE DARK | 💻 DESKTOP WHITE */}
-      <div className="w-full md:w-1/2 bg-[#020617] md:bg-white flex flex-col items-center justify-center p-8 overflow-y-auto transition-colors duration-300">
+      <div className="w-full md:w-1/2 bg-[#0B0B0B] md:bg-white flex flex-col items-center justify-center p-8 overflow-y-auto transition-colors duration-300">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="md:hidden text-center mb-4">
@@ -89,21 +89,21 @@ function ResetPasswordContent() {
 
           {/* Invalid link */}
           {!isValidResetLink && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg animate__animated animate__fadeIn">
+            <div className="mb-4 p-3 bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] rounded-lg animate__animated animate__fadeIn">
               Invalid or expired reset link
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg animate__animated animate__fadeIn">
+            <div className="mb-4 p-3 bg-[#FEE2E2] border border-[#FECACA] text-[#DC2626] rounded-lg animate__animated animate__fadeIn">
               {error}
             </div>
           )}
 
           {/* Success */}
           {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg animate__animated animate__fadeIn">
+            <div className="mb-4 p-3 bg-[#DCFCE7] border border-[#BBF7D0] text-[#16A34A] rounded-lg animate__animated animate__fadeIn">
               {success}
             </div>
           )}
@@ -127,7 +127,7 @@ function ResetPasswordContent() {
             <div className="mt-4 text-center animate__animated animate__fadeIn">
               <button
                 onClick={() => router.push("/")}
-                className="text-blue-500 hover:text-blue-600 font-medium transition"
+                className="text-[#1E3A8A] hover:text-[#1D4ED8] font-medium transition"
               >
                 Back to Login
               </button>
@@ -143,8 +143,8 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen items-center justify-center bg-[#020617] md:bg-gray-50">
-          <div className="text-gray-300 md:text-gray-600">Loading...</div>
+        <div className="flex h-screen items-center justify-center bg-[#0B0B0B] md:bg-[#F9FAFB]">
+          <div className="text-[#D1D5DB] md:text-[#6B7280]">Loading...</div>
         </div>
       }
     >

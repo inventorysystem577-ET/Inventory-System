@@ -12,7 +12,7 @@ import { handleFormSubmit } from "../../utils/formHandlers";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState("");
 
   const onSubmit = (e) => {
     handleFormSubmit({
@@ -37,7 +37,7 @@ export default function LoginPage() {
       <WelcomeIcon />
 
       {/* MOBILE DARK | DESKTOP WHITE */}
-      <div className="w-full md:w-1/2 bg-[#020617] md:bg-white flex flex-col items-center justify-center p-8 overflow-y-auto transition-colors duration-300">
+      <div className="w-full md:w-1/2 bg-[#0B0B0B] md:bg-white flex flex-col items-center justify-center p-8 overflow-y-auto transition-colors duration-300">
         <div className="w-full max-w-md">
           {/* MOBILE LOGO */}
           <div className="md:hidden text-center mb-4">

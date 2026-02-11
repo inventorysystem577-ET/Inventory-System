@@ -61,7 +61,6 @@ export default function Sidebar({
   const handleLogoutClick = async () => {
     try {
       await handleLogout();
-      window.location.href = "/";
     } catch (err) {
       alert(err.message || "Logout failed");
     }
@@ -82,7 +81,9 @@ export default function Sidebar({
         className={`fixed left-0 top-14 sm:top-16 h-full border-r transition-all duration-300 z-20 overflow-hidden ${
           sidebarOpen ? "w-64 sm:w-72 lg:w-64" : "w-0"
         } ${
-          darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          darkMode
+            ? "bg-[#111827] border-[#374151]"
+            : "bg-[#F3F4F6] border-[#E5E7EB]"
         }`}
       >
         {sidebarOpen && (
@@ -93,10 +94,10 @@ export default function Sidebar({
                 onClick={() => handleMenuClick(item.id, item.path)}
                 className={`w-full flex items-center space-x-3 sm:space-x-4 lg:space-x-3 px-4 sm:px-5 lg:px-4 py-3 sm:py-3.5 lg:py-3 rounded-lg transition-all text-base sm:text-lg lg:text-base ${
                   activeTab === item.id
-                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30"
+                    ? "bg-[#1E3A8A] text-white shadow-lg shadow-blue-500/30"
                     : darkMode
-                      ? "text-gray-300 hover:bg-gray-700"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "text-[#D1D5DB] hover:bg-[#1F2937]"
+                      : "text-[#374151] hover:bg-white"
                 }`}
               >
                 <item.icon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-5 lg:h-5 flex-shrink-0" />
@@ -108,15 +109,15 @@ export default function Sidebar({
 
             <div
               className={`pt-4 mt-4 border-t ${
-                darkMode ? "border-gray-700" : "border-gray-200"
+                darkMode ? "border-[#374151]" : "border-[#D1D5DB]"
               }`}
             >
               <button
                 onClick={handleLogoutClick}
                 className={`w-full flex items-center space-x-3 sm:space-x-4 lg:space-x-3 px-4 sm:px-5 lg:px-4 py-3 sm:py-3.5 lg:py-3 rounded-lg transition-all text-base sm:text-lg lg:text-base cursor-pointer ${
                   darkMode
-                    ? "text-red-400 hover:bg-red-900/20"
-                    : "text-red-600 hover:bg-red-50"
+                    ? "text-[#EF4444] hover:bg-[#1F2937]"
+                    : "text-[#DC2626] hover:bg-white"
                 }`}
               >
                 <LogOut className="w-5 h-5 sm:w-6 sm:h-6 lg:w-5 lg:h-5 flex-shrink-0" />

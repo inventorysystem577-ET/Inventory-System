@@ -43,22 +43,22 @@ export default function Page() {
   const getStatusColor = (quantity, darkMode) => {
     if (quantity === 0) {
       return darkMode
-        ? "bg-red-500/20 text-red-400 border border-red-500/30"
-        : "bg-red-100 text-red-700 border border-red-200";
+        ? "bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30"
+        : "bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA]";
     }
     if (quantity <= 5) {
       return darkMode
-        ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-        : "bg-orange-100 text-orange-700 border border-orange-200";
+        ? "bg-[#F97316]/20 text-[#F97316] border border-[#F97316]/30"
+        : "bg-[#FFEDD5] text-[#EA580C] border border-[#FED7AA]";
     }
     if (quantity < 10) {
       return darkMode
-        ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-        : "bg-yellow-100 text-yellow-700 border border-yellow-200";
+        ? "bg-[#FACC15]/20 text-[#FACC15] border border-[#FACC15]/30"
+        : "bg-[#FEF9C3] text-[#EAB308] border border-[#FEF08A]";
     }
     return darkMode
-      ? "bg-green-500/20 text-green-400 border border-green-500/30"
-      : "bg-green-100 text-green-700 border border-green-200";
+      ? "bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30"
+      : "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]";
   };
 
   // Helper to get status icon
@@ -76,10 +76,10 @@ export default function Page() {
 
   // Helper to get indicator dot color
   const getIndicatorColor = (quantity) => {
-    if (quantity === 0) return "bg-red-500";
-    if (quantity <= 5) return "bg-orange-500";
-    if (quantity < 10) return "bg-yellow-500";
-    return "bg-green-500";
+    if (quantity === 0) return "bg-[#EF4444]";
+    if (quantity <= 5) return "bg-[#F97316]";
+    if (quantity < 10) return "bg-[#FACC15]";
+    return "bg-[#22C55E]";
   };
 
   useEffect(() => {
@@ -141,7 +141,7 @@ export default function Page() {
       theme: "grid",
       styles: { fontSize: 10 },
       headStyles: {
-        fillColor: [37, 99, 235], // blue header
+        fillColor: [30, 58, 138], // Royal Blue #1E3A8A
       },
     });
 
@@ -152,16 +152,16 @@ export default function Page() {
     <div
       className={
         darkMode
-          ? "dark min-h-screen bg-gray-900 text-white"
-          : "min-h-screen bg-gray-50 text-black"
+          ? "dark min-h-screen bg-[#0B0B0B] text-white"
+          : "min-h-screen bg-[#F9FAFB] text-black"
       }
     >
       {/* Top Navbar */}
       <div
         className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b shadow-sm ${
           darkMode
-            ? "bg-gray-800/90 border-gray-700"
-            : "bg-white/90 border-gray-300"
+            ? "bg-[#111827]/90 border-[#374151]"
+            : "bg-white/90 border-[#E5E7EB]"
         }`}
       >
         <TopNavbar
@@ -195,7 +195,7 @@ export default function Page() {
               {/* Left line */}
               <div
                 className={`flex-1 h-[2px] max-w-[100px] sm:max-w-[150px] md:max-w-[200px] ${
-                  darkMode ? "bg-gray-700" : "bg-gray-300"
+                  darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"
                 }`}
               ></div>
 
@@ -203,7 +203,7 @@ export default function Page() {
               <div className="flex items-center gap-2 px-2 sm:px-3">
                 <Package
                   className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                    darkMode ? "text-blue-400" : "text-blue-600"
+                    darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"
                   }`}
                 />
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-wide whitespace-nowrap">
@@ -214,13 +214,15 @@ export default function Page() {
               {/* Right line */}
               <div
                 className={`flex-1 h-[2px] max-w-[100px] sm:max-w-[150px] md:max-w-[200px] ${
-                  darkMode ? "bg-gray-700" : "bg-gray-300"
+                  darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"
                 }`}
               ></div>
             </div>
 
             {/* Subtitle */}
-            <p className="text-center text-xs sm:text-sm opacity-70 px-4">
+            <p
+              className={`text-center text-xs sm:text-sm px-4 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+            >
               Monitor real-time stock levels and inventory status
             </p>
           </div>
@@ -229,12 +231,11 @@ export default function Page() {
           <div className="flex items-center justify-center sm:justify-start gap-3 mb-4 sm:mb-6">
             <button
               onClick={exportToPDF}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg text-sm sm:text-base
-${
-  darkMode
-    ? "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/40"
-    : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200"
-}`}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg text-sm sm:text-base ${
+                darkMode
+                  ? "bg-[#1E3A8A] hover:bg-[#1D4ED8] text-white"
+                  : "bg-[#1E3A8A] hover:bg-[#1D4ED8] text-white"
+              }`}
             >
               📄 Export as PDF
             </button>
@@ -248,13 +249,13 @@ ${
               className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
   ${
     filterStatus === "out"
-      ? "ring-2 ring-red-500 shadow-red-500/30 shadow-lg scale-[1.03]"
+      ? "ring-2 ring-[#EF4444] shadow-[#EF4444]/30 shadow-lg scale-[1.03]"
       : ""
   }
   ${
     darkMode
-      ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
-      : "bg-white border-gray-200 hover:bg-red-50"
+      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+      : "bg-white border-[#E5E7EB] hover:bg-[#FEE2E2]"
   }
   animate__animated animate__fadeInUp`}
               style={{ animationDelay: "0.1s" }}
@@ -262,15 +263,15 @@ ${
               <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
                 <div className="text-center sm:text-left">
                   <p
-                    className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-xs sm:text-sm font-medium`}
+                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
                   >
                     Out of Stock
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-red-500 mt-1 group-hover:scale-110 transition">
+                  <p className="text-xl sm:text-2xl font-bold text-[#EF4444] mt-1 group-hover:scale-110 transition">
                     {statusCounts.out}
                   </p>
                 </div>
-                <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500 opacity-60 group-hover:scale-125 transition" />
+                <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-[#EF4444] opacity-60 group-hover:scale-125 transition" />
               </div>
             </div>
 
@@ -280,13 +281,13 @@ ${
               className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
   ${
     filterStatus === "critical"
-      ? "ring-2 ring-orange-500 shadow-orange-500/30 shadow-lg scale-[1.03]"
+      ? "ring-2 ring-[#F97316] shadow-[#F97316]/30 shadow-lg scale-[1.03]"
       : ""
   }
   ${
     darkMode
-      ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
-      : "bg-white border-gray-200 hover:bg-orange-50"
+      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+      : "bg-white border-[#E5E7EB] hover:bg-[#FFEDD5]"
   }
   animate__animated animate__fadeInUp`}
               style={{ animationDelay: "0.2s" }}
@@ -294,15 +295,15 @@ ${
               <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
                 <div className="text-center sm:text-left">
                   <p
-                    className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-xs sm:text-sm font-medium`}
+                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
                   >
                     Critical Level
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-orange-500 mt-1 group-hover:scale-110 transition">
+                  <p className="text-xl sm:text-2xl font-bold text-[#F97316] mt-1 group-hover:scale-110 transition">
                     {statusCounts.critical}
                   </p>
                 </div>
-                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 opacity-60 group-hover:scale-125 transition" />
+                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-[#F97316] opacity-60 group-hover:scale-125 transition" />
               </div>
             </div>
 
@@ -312,13 +313,13 @@ ${
               className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
   ${
     filterStatus === "low"
-      ? "ring-2 ring-yellow-500 shadow-yellow-500/30 shadow-lg scale-[1.03]"
+      ? "ring-2 ring-[#FACC15] shadow-[#FACC15]/30 shadow-lg scale-[1.03]"
       : ""
   }
   ${
     darkMode
-      ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
-      : "bg-white border-gray-200 hover:bg-yellow-50"
+      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+      : "bg-white border-[#E5E7EB] hover:bg-[#FEF9C3]"
   }
   animate__animated animate__fadeInUp`}
               style={{ animationDelay: "0.3s" }}
@@ -326,15 +327,15 @@ ${
               <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
                 <div className="text-center sm:text-left">
                   <p
-                    className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-xs sm:text-sm font-medium`}
+                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
                   >
                     Low Stock
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-yellow-500 mt-1 group-hover:scale-110 transition">
+                  <p className="text-xl sm:text-2xl font-bold text-[#FACC15] mt-1 group-hover:scale-110 transition">
                     {statusCounts.low}
                   </p>
                 </div>
-                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 opacity-60 group-hover:scale-125 transition" />
+                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-[#FACC15] opacity-60 group-hover:scale-125 transition" />
               </div>
             </div>
 
@@ -344,13 +345,13 @@ ${
               className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
   ${
     filterStatus === "available"
-      ? "ring-2 ring-green-500 shadow-green-500/30 shadow-lg scale-[1.03]"
+      ? "ring-2 ring-[#22C55E] shadow-[#22C55E]/30 shadow-lg scale-[1.03]"
       : ""
   }
   ${
     darkMode
-      ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
-      : "bg-white border-gray-200 hover:bg-green-50"
+      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+      : "bg-white border-[#E5E7EB] hover:bg-[#DCFCE7]"
   }
   animate__animated animate__fadeInUp`}
               style={{ animationDelay: "0.4s" }}
@@ -358,15 +359,15 @@ ${
               <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
                 <div className="text-center sm:text-left">
                   <p
-                    className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-xs sm:text-sm font-medium`}
+                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
                   >
                     Available
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-500 mt-1 group-hover:scale-110 transition">
+                  <p className="text-xl sm:text-2xl font-bold text-[#22C55E] mt-1 group-hover:scale-110 transition">
                     {statusCounts.available}
                   </p>
                 </div>
-                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 opacity-60 group-hover:scale-125 transition" />
+                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-[#22C55E] opacity-60 group-hover:scale-125 transition" />
               </div>
             </div>
           </div>
@@ -376,8 +377,8 @@ ${
             <div
               className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl border-l-4 animate__animated animate__fadeInLeft ${
                 darkMode
-                  ? "bg-red-500/10 border-red-500 text-red-300"
-                  : "bg-red-50 border-red-400 text-red-800"
+                  ? "bg-[#EF4444]/10 border-[#EF4444] text-[#EF4444]"
+                  : "bg-[#FEE2E2] border-[#DC2626] text-[#DC2626]"
               }`}
             >
               <div className="flex items-start gap-2 sm:gap-3">
@@ -402,7 +403,7 @@ ${
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
             <label
               className={`text-xs sm:text-sm font-medium ${
-                darkMode ? "text-gray-300" : "text-gray-700"
+                darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
               }`}
             >
               Filter by Status:
@@ -412,8 +413,8 @@ ${
               onChange={(e) => setFilterStatus(e.target.value)}
               className={`border rounded-lg px-3 py-2 w-full sm:w-60 focus:outline-none focus:ring-2 transition-all text-sm ${
                 darkMode
-                  ? "border-gray-600 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white"
-                  : "border-gray-300 focus:ring-blue-400 focus:border-blue-400 bg-white text-black"
+                  ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                  : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
               }`}
             >
               <option value="all">All Items ({items.length})</option>
@@ -432,16 +433,16 @@ ${
           <div
             className={`rounded-xl shadow-lg overflow-x-auto overflow-y-auto border animate__animated animate__fadeInUp max-h-[600px] ${
               darkMode
-                ? "bg-gray-800 border-gray-700"
-                : "bg-white border-gray-200"
+                ? "bg-[#1F2937] border-[#374151]"
+                : "bg-white border-[#E5E7EB]"
             }`}
           >
             <table className="min-w-full w-full">
               <thead
                 className={`sticky top-0 z-10 ${
                   darkMode
-                    ? "bg-gray-700/50 border-b border-gray-600"
-                    : "bg-gray-50 border-b border-gray-200"
+                    ? "bg-[#111827] border-b border-[#374151]"
+                    : "bg-[#F9FAFB] border-b border-[#E5E7EB]"
                 }`}
               >
                 <tr>
@@ -450,7 +451,7 @@ ${
                       <th
                         key={head}
                         className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap ${
-                          darkMode ? "text-gray-300" : "text-gray-700"
+                          darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                         }`}
                       >
                         {head}
@@ -461,7 +462,7 @@ ${
               </thead>
               <tbody
                 className={`divide-y ${
-                  darkMode ? "divide-gray-700" : "divide-gray-200"
+                  darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
                 }`}
               >
                 {filteredItems.length === 0 ? (
@@ -469,12 +470,12 @@ ${
                     <td
                       colSpan={4}
                       className={`px-4 sm:px-6 py-12 sm:py-16 text-center ${
-                        darkMode ? "text-gray-400" : "text-gray-500"
+                        darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                       }`}
                     >
                       <Package
                         className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__bounce animate__infinite animate__slow ${
-                          darkMode ? "text-gray-600" : "text-gray-300"
+                          darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
                         }`}
                       />
                       <p className="text-base sm:text-lg font-medium mb-1">
@@ -490,13 +491,15 @@ ${
                     <tr
                       key={item.id}
                       className={`transition-all duration-200 animate__animated animate__fadeInUp ${
-                        darkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-50"
+                        darkMode
+                          ? "hover:bg-[#374151]/40"
+                          : "hover:bg-[#F3F4F6]"
                       }`}
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <td
                         className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap font-semibold text-sm sm:text-base ${
-                          darkMode ? "text-gray-200" : "text-gray-900"
+                          darkMode ? "text-[#FFFFFF]" : "text-[#111827]"
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -511,12 +514,12 @@ ${
                       <td
                         className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base font-semibold ${
                           item.quantity === 0
-                            ? "text-red-500"
+                            ? "text-[#EF4444]"
                             : item.quantity <= 5
-                              ? "text-orange-500"
+                              ? "text-[#F97316]"
                               : item.quantity < 10
-                                ? "text-yellow-500"
-                                : "text-green-500"
+                                ? "text-[#FACC15]"
+                                : "text-[#22C55E]"
                         }`}
                       >
                         {item.quantity} units
@@ -536,7 +539,7 @@ ${
                       </td>
                       <td
                         className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
-                          darkMode ? "text-gray-300" : "text-gray-700"
+                          darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                         }`}
                       >
                         {item.date}
