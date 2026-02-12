@@ -75,6 +75,8 @@ export default function Sidebar({
   const handleLogoutClick = async () => {
     try {
       await handleLogout();
+      // Navigate to home page after successful logout
+      router.push("/");
     } catch (err) {
       alert(err.message || "Logout failed");
     }

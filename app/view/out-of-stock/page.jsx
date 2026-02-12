@@ -7,21 +7,39 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import TopNavbar from "../../components/TopNavbar";
-import { Package, AlertTriangle, TrendingDown, XCircle } from "lucide-react";
+import {
+  Box,
+  AlertTriangle,
+  TrendingDown,
+  XCircle,
+  Package,
+} from "lucide-react";
 import "animate.css";
 
-// Import helper
+// Import controllers
+import { fetchProductInController } from "../../controller/productController";
 import { fetchParcelItems } from "../../utils/parcelShippedHelper";
 
 export default function Page() {
   const searchParams = useSearchParams();
   const statusParam = searchParams.get("status");
+  const typeParam = searchParams.get("type"); // 'parcel' or 'product'
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("stock-inventory");
+  const [activeTab, setActiveTab] = useState("product-inventory");
   const [darkMode, setDarkMode] = useState(false);
-  const [items, setItems] = useState([]); // all items from parcel_in
-  const [filterStatus, setFilterStatus] = useState(statusParam || "all"); // all, available, low, critical, out
+
+  // Parcel items
+  const [parcelItems, setParcelItems] = useState([]);
+  const [filterParcelStatus, setFilterParcelStatus] = useState(
+    statusParam && typeParam === "parcel" ? statusParam : "all",
+  );
+
+  // Product items
+  const [productItems, setProductItems] = useState([]);
+  const [filterProductStatus, setFilterProductStatus] = useState(
+    statusParam && typeParam === "product" ? statusParam : "all",
+  );
 
   // Helper to get stock status
   const getStockStatus = (quantity) => {
@@ -63,15 +81,11 @@ export default function Page() {
 
   // Helper to get status icon
   const getStatusIcon = (quantity) => {
-    if (quantity === 0)
-      return <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />;
+    if (quantity === 0) return <XCircle className="w-4 h-4" />;
     if (quantity <= 5)
-      return (
-        <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate__animated animate__headShake animate__infinite animate__slow" />
-      );
-    if (quantity < 10)
-      return <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />;
-    return <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5" />;
+      return <AlertTriangle className="w-4 h-4 animate-pulse" />;
+    if (quantity < 10) return <TrendingDown className="w-4 h-4" />;
+    return <Box className="w-4 h-4" />;
   };
 
   // Helper to get indicator dot color
@@ -87,8 +101,11 @@ export default function Page() {
     if (savedDarkMode !== null) setDarkMode(savedDarkMode === "true");
 
     const loadItems = async () => {
-      const parcelInItems = await fetchParcelItems();
-      setItems(parcelInItems);
+      const parcelData = await fetchParcelItems();
+      const productData = await fetchProductInController();
+
+      setParcelItems(parcelData || []);
+      setProductItems(productData || []);
     };
 
     loadItems();
@@ -96,38 +113,66 @@ export default function Page() {
 
   // Update filter when status param changes
   useEffect(() => {
-    if (statusParam) {
-      setFilterStatus(statusParam);
+    if (statusParam && typeParam === "parcel") {
+      setFilterParcelStatus(statusParam);
+    } else if (statusParam && typeParam === "product") {
+      setFilterProductStatus(statusParam);
     }
-  }, [statusParam]);
+  }, [statusParam, typeParam]);
 
-  // Filter items based on selected status
-  const filteredItems = items.filter((item) => {
-    if (filterStatus === "all") return true;
-    return getStockStatus(item.quantity) === filterStatus;
+  // Filter parcel items based on selected status
+  const filteredParcelItems = parcelItems.filter((item) => {
+    if (filterParcelStatus === "all") return true;
+    return getStockStatus(item.quantity) === filterParcelStatus;
   });
 
-  // Count items by status
-  const statusCounts = {
-    out: items.filter((item) => item.quantity === 0).length,
-    critical: items.filter((item) => item.quantity > 0 && item.quantity <= 5)
+  // Filter product items based on selected status
+  const filteredProductItems = productItems.filter((item) => {
+    if (filterProductStatus === "all") return true;
+    return getStockStatus(item.quantity) === filterProductStatus;
+  });
+
+  // Count parcel items by status
+  const parcelStatusCounts = {
+    out: parcelItems.filter((item) => item.quantity === 0).length,
+    critical: parcelItems.filter(
+      (item) => item.quantity > 0 && item.quantity <= 5,
+    ).length,
+    low: parcelItems.filter((item) => item.quantity > 5 && item.quantity < 10)
       .length,
-    low: items.filter((item) => item.quantity > 5 && item.quantity < 10).length,
-    available: items.filter((item) => item.quantity >= 10).length,
+    available: parcelItems.filter((item) => item.quantity >= 10).length,
+  };
+
+  // Count product items by status
+  const productStatusCounts = {
+    out: productItems.filter((item) => item.quantity === 0).length,
+    critical: productItems.filter(
+      (item) => item.quantity > 0 && item.quantity <= 5,
+    ).length,
+    low: productItems.filter((item) => item.quantity > 5 && item.quantity < 10)
+      .length,
+    available: productItems.filter((item) => item.quantity >= 10).length,
   };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
 
     doc.setFontSize(18);
-    doc.text("Inventory Stock Report", 14, 18);
-
+    doc.text("Inventory Report", 14, 18);
     doc.setFontSize(11);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
 
-    const tableColumn = ["Item Name", "Current Stock", "Status", "Date Added"];
+    // Parcel Section
+    doc.setFontSize(14);
+    doc.text("Parcel Inventory", 14, 40);
 
-    const tableRows = filteredItems.map((item) => [
+    const parcelTableColumn = [
+      "Item Name",
+      "Current Stock",
+      "Status",
+      "Date Added",
+    ];
+    const parcelTableRows = filteredParcelItems.map((item) => [
       item.name,
       `${item.quantity} units`,
       getStatusLabel(item.quantity),
@@ -135,14 +180,39 @@ export default function Page() {
     ]);
 
     autoTable(doc, {
-      startY: 35,
-      head: [tableColumn],
-      body: tableRows,
+      startY: 45,
+      head: [parcelTableColumn],
+      body: parcelTableRows,
       theme: "grid",
       styles: { fontSize: 10 },
-      headStyles: {
-        fillColor: [30, 58, 138], // Royal Blue #1E3A8A
-      },
+      headStyles: { fillColor: [30, 64, 175] }, // Blue
+    });
+
+    // Product Section
+    const finalY = doc.lastAutoTable.finalY || 45;
+    doc.setFontSize(14);
+    doc.text("Product Inventory", 14, finalY + 15);
+
+    const productTableColumn = [
+      "Product Name",
+      "Current Stock",
+      "Status",
+      "Date Added",
+    ];
+    const productTableRows = filteredProductItems.map((item) => [
+      item.product_name,
+      `${item.quantity} units`,
+      getStatusLabel(item.quantity),
+      item.date,
+    ]);
+
+    autoTable(doc, {
+      startY: finalY + 20,
+      head: [productTableColumn],
+      body: productTableRows,
+      theme: "grid",
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [124, 58, 237] }, // Purple
     });
 
     doc.save("inventory-report.pdf");
@@ -150,408 +220,695 @@ export default function Page() {
 
   return (
     <div
-      className={
-        darkMode
-          ? "dark min-h-screen bg-[#0B0B0B] text-white"
-          : "min-h-screen bg-[#F9FAFB] text-black"
-      }
+      className={`min-h-screen transition-colors duration-300 ${
+        darkMode ? "bg-[#111827] text-white" : "bg-[#F3F4F6] text-black"
+      }`}
     >
       {/* Top Navbar */}
-      <div
-        className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b shadow-sm ${
-          darkMode
-            ? "bg-[#111827]/90 border-[#374151]"
-            : "bg-white/90 border-[#E5E7EB]"
-        }`}
-      >
-        <TopNavbar
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-        />
-      </div>
+      <TopNavbar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
 
       {/* Sidebar */}
       <Sidebar
         sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        setSidebarOpen={setSidebarOpen}
         darkMode={darkMode}
       />
 
       {/* Main Content */}
-      <main
-        className={`pt-20 transition-all duration-300 ease-in-out ${
-          sidebarOpen ? "lg:ml-64" : "lg:ml-0"
-        }`}
+      <div
+        className={`transition-all duration-300 ${
+          sidebarOpen ? "ml-64" : "ml-0"
+        } pt-16`}
       >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* Page Header */}
-          <div className="mb-6 sm:mb-10 animate__animated animate__fadeInDown">
-            {/* Header with centered lines */}
-            <div className="flex items-center justify-center gap-3 sm:gap-4 mb-2">
-              {/* Left line */}
-              <div
-                className={`flex-1 h-[2px] max-w-[100px] sm:max-w-[150px] md:max-w-[200px] ${
-                  darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"
+          <div className="flex flex-col items-center text-center mb-6 gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+                Inventory Status
+              </h1>
+              <p
+                className={`text-sm ${
+                  darkMode ? "text-gray-400" : "text-gray-600"
                 }`}
-              ></div>
-
-              {/* Center icon + title */}
-              <div className="flex items-center gap-2 px-2 sm:px-3">
-                <Package
-                  className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                    darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"
-                  }`}
-                />
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-wide whitespace-nowrap">
-                  Inventory Stock Level
-                </h1>
-              </div>
-
-              {/* Right line */}
-              <div
-                className={`flex-1 h-[2px] max-w-[100px] sm:max-w-[150px] md:max-w-[200px] ${
-                  darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"
-                }`}
-              ></div>
+              >
+                Monitor stock levels for parcels and products
+              </p>
             </div>
 
-            {/* Subtitle */}
-            <p
-              className={`text-center text-xs sm:text-sm px-4 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
-            >
-              Monitor real-time stock levels and inventory status
-            </p>
-          </div>
-
-          {/* Export Button */}
-          <div className="flex items-center justify-center sm:justify-start gap-3 mb-4 sm:mb-6">
+            {/* Export Button */}
             <button
               onClick={exportToPDF}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg text-sm sm:text-base ${
-                darkMode
-                  ? "bg-[#1E3A8A] hover:bg-[#1D4ED8] text-white"
-                  : "bg-[#1E3A8A] hover:bg-[#1D4ED8] text-white"
-              }`}
+              className="bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white px-6 py-3 rounded-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 text-sm font-medium"
             >
               📄 Export as PDF
             </button>
           </div>
 
-          {/* Status Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            {/* Out of Stock */}
-            <div
-              onClick={() => setFilterStatus("out")}
-              className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
-  ${
-    filterStatus === "out"
-      ? "ring-2 ring-[#EF4444] shadow-[#EF4444]/30 shadow-lg scale-[1.03]"
-      : ""
-  }
-  ${
-    darkMode
-      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
-      : "bg-white border-[#E5E7EB] hover:bg-[#FEE2E2]"
-  }
-  animate__animated animate__fadeInUp`}
-              style={{ animationDelay: "0.1s" }}
-            >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
-                <div className="text-center sm:text-left">
-                  <p
-                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
-                  >
-                    Out of Stock
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#EF4444] mt-1 group-hover:scale-110 transition">
-                    {statusCounts.out}
-                  </p>
-                </div>
-                <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-[#EF4444] opacity-60 group-hover:scale-125 transition" />
-              </div>
-            </div>
-
-            {/* Critical */}
-            <div
-              onClick={() => setFilterStatus("critical")}
-              className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
-  ${
-    filterStatus === "critical"
-      ? "ring-2 ring-[#F97316] shadow-[#F97316]/30 shadow-lg scale-[1.03]"
-      : ""
-  }
-  ${
-    darkMode
-      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
-      : "bg-white border-[#E5E7EB] hover:bg-[#FFEDD5]"
-  }
-  animate__animated animate__fadeInUp`}
-              style={{ animationDelay: "0.2s" }}
-            >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
-                <div className="text-center sm:text-left">
-                  <p
-                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
-                  >
-                    Critical Level
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#F97316] mt-1 group-hover:scale-110 transition">
-                    {statusCounts.critical}
-                  </p>
-                </div>
-                <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-[#F97316] opacity-60 group-hover:scale-125 transition" />
-              </div>
-            </div>
-
-            {/* Low Stock */}
-            <div
-              onClick={() => setFilterStatus("low")}
-              className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
-  ${
-    filterStatus === "low"
-      ? "ring-2 ring-[#FACC15] shadow-[#FACC15]/30 shadow-lg scale-[1.03]"
-      : ""
-  }
-  ${
-    darkMode
-      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
-      : "bg-white border-[#E5E7EB] hover:bg-[#FEF9C3]"
-  }
-  animate__animated animate__fadeInUp`}
-              style={{ animationDelay: "0.3s" }}
-            >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
-                <div className="text-center sm:text-left">
-                  <p
-                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
-                  >
-                    Low Stock
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#FACC15] mt-1 group-hover:scale-110 transition">
-                    {statusCounts.low}
-                  </p>
-                </div>
-                <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-[#FACC15] opacity-60 group-hover:scale-125 transition" />
-              </div>
-            </div>
-
-            {/* Available */}
-            <div
-              onClick={() => setFilterStatus("available")}
-              className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group
-  ${
-    filterStatus === "available"
-      ? "ring-2 ring-[#22C55E] shadow-[#22C55E]/30 shadow-lg scale-[1.03]"
-      : ""
-  }
-  ${
-    darkMode
-      ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
-      : "bg-white border-[#E5E7EB] hover:bg-[#DCFCE7]"
-  }
-  animate__animated animate__fadeInUp`}
-              style={{ animationDelay: "0.4s" }}
-            >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between gap-2">
-                <div className="text-center sm:text-left">
-                  <p
-                    className={`${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"} text-xs sm:text-sm font-medium`}
-                  >
-                    Available
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#22C55E] mt-1 group-hover:scale-110 transition">
-                    {statusCounts.available}
-                  </p>
-                </div>
-                <Package className="w-6 h-6 sm:w-8 sm:h-8 text-[#22C55E] opacity-60 group-hover:scale-125 transition" />
-              </div>
-            </div>
-          </div>
-
           {/* Alert Banner for Critical Items */}
-          {(statusCounts.out > 0 || statusCounts.critical > 0) && (
+          {(parcelStatusCounts.out > 0 ||
+            parcelStatusCounts.critical > 0 ||
+            productStatusCounts.out > 0 ||
+            productStatusCounts.critical > 0) && (
             <div
-              className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl border-l-4 animate__animated animate__fadeInLeft ${
+              className={`p-4 rounded-xl mb-6 border-l-4 animate__animated animate__fadeInDown ${
                 darkMode
-                  ? "bg-[#EF4444]/10 border-[#EF4444] text-[#EF4444]"
-                  : "bg-[#FEE2E2] border-[#DC2626] text-[#DC2626]"
+                  ? "bg-[#7f1d1d]/20 border-[#EF4444]"
+                  : "bg-[#FEE2E2] border-[#DC2626]"
               }`}
             >
-              <div className="flex items-start gap-2 sm:gap-3">
-                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0 animate__animated animate__swing animate__infinite animate__slow" />
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm sm:text-base">
+                  <h3 className="font-semibold text-[#EF4444] mb-1">
                     Inventory Alert
-                  </p>
-                  <p className="text-xs sm:text-sm opacity-90 mt-0.5">
-                    {statusCounts.out > 0 &&
-                      `${statusCounts.out} item${statusCounts.out > 1 ? "s" : ""} out of stock`}
-                    {statusCounts.out > 0 && statusCounts.critical > 0 && " • "}
-                    {statusCounts.critical > 0 &&
-                      `${statusCounts.critical} item${statusCounts.critical > 1 ? "s" : ""} at critical level`}
+                  </h3>
+                  <p
+                    className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    {parcelStatusCounts.out > 0 && (
+                      <>
+                        <strong>Parcels:</strong> {parcelStatusCounts.out} item
+                        {parcelStatusCounts.out > 1 ? "s" : ""} out of stock
+                      </>
+                    )}
+                    {parcelStatusCounts.out > 0 &&
+                      parcelStatusCounts.critical > 0 &&
+                      " • "}
+                    {parcelStatusCounts.critical > 0 && (
+                      <>
+                        {parcelStatusCounts.critical} item
+                        {parcelStatusCounts.critical > 1 ? "s" : ""} at critical
+                        level
+                      </>
+                    )}
+                    {(parcelStatusCounts.out > 0 ||
+                      parcelStatusCounts.critical > 0) &&
+                      (productStatusCounts.out > 0 ||
+                        productStatusCounts.critical > 0) && (
+                        <span className="mx-2">|</span>
+                      )}
+                    {productStatusCounts.out > 0 && (
+                      <>
+                        <strong>Products:</strong> {productStatusCounts.out}{" "}
+                        product{productStatusCounts.out > 1 ? "s" : ""} out of
+                        stock
+                      </>
+                    )}
+                    {productStatusCounts.out > 0 &&
+                      productStatusCounts.critical > 0 &&
+                      " • "}
+                    {productStatusCounts.critical > 0 && (
+                      <>
+                        {productStatusCounts.critical} product
+                        {productStatusCounts.critical > 1 ? "s" : ""} at
+                        critical level
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Filter Dropdown */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
-            <label
-              className={`text-xs sm:text-sm font-medium ${
-                darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-              }`}
-            >
-              Filter by Status:
-            </label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className={`border rounded-lg px-3 py-2 w-full sm:w-60 focus:outline-none focus:ring-2 transition-all text-sm ${
+          {/* ============= PARCEL SECTION ============= */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Package className="w-6 h-6 text-[#1e40af]" />
+              <h2 className="text-xl font-bold">Parcel Inventory</h2>
+            </div>
+
+            {/* Parcel Status Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Out of Stock */}
+              <div
+                onClick={() => setFilterParcelStatus("out")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterParcelStatus === "out"
+                    ? "ring-2 ring-[#EF4444] shadow-[#EF4444]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#FEE2E2]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.1s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <XCircle className="w-5 h-5 text-[#EF4444]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#EF4444]/20" : "bg-[#FEE2E2]"
+                    } text-[#EF4444]`}
+                  >
+                    Critical
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Out of Stock
+                </p>
+                <p className="text-2xl font-bold">{parcelStatusCounts.out}</p>
+              </div>
+
+              {/* Critical Level */}
+              <div
+                onClick={() => setFilterParcelStatus("critical")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterParcelStatus === "critical"
+                    ? "ring-2 ring-[#F97316] shadow-[#F97316]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#FFEDD5]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.2s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <AlertTriangle className="w-5 h-5 text-[#F97316]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#F97316]/20" : "bg-[#FFEDD5]"
+                    } text-[#F97316]`}
+                  >
+                    Alert
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Critical Level
+                </p>
+                <p className="text-2xl font-bold">
+                  {parcelStatusCounts.critical}
+                </p>
+              </div>
+
+              {/* Low Stock */}
+              <div
+                onClick={() => setFilterParcelStatus("low")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterParcelStatus === "low"
+                    ? "ring-2 ring-[#FACC15] shadow-[#FACC15]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#FEF9C3]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.3s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <TrendingDown className="w-5 h-5 text-[#FACC15]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#FACC15]/20" : "bg-[#FEF9C3]"
+                    } text-[#FACC15]`}
+                  >
+                    Warning
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Low Stock
+                </p>
+                <p className="text-2xl font-bold">{parcelStatusCounts.low}</p>
+              </div>
+
+              {/* Available */}
+              <div
+                onClick={() => setFilterParcelStatus("available")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterParcelStatus === "available"
+                    ? "ring-2 ring-[#22C55E] shadow-[#22C55E]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#DCFCE7]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.4s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <Box className="w-5 h-5 text-[#22C55E]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#22C55E]/20" : "bg-[#DCFCE7]"
+                    } text-[#22C55E]`}
+                  >
+                    Good
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Available
+                </p>
+                <p className="text-2xl font-bold">
+                  {parcelStatusCounts.available}
+                </p>
+              </div>
+            </div>
+
+            {/* Parcel Filter Dropdown */}
+            <div className="mb-4">
+              <label
+                className={`block text-sm font-medium mb-2 ${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
+                Filter Parcels by Status:
+              </label>
+              <select
+                value={filterParcelStatus}
+                onChange={(e) => setFilterParcelStatus(e.target.value)}
+                className={`border rounded-lg px-3 py-2 w-full sm:w-60 focus:outline-none focus:ring-2 transition-all text-sm ${
+                  darkMode
+                    ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white"
+                    : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black"
+                }`}
+              >
+                <option value="all">All Parcels ({parcelItems.length})</option>
+                <option value="available">
+                  Available ({parcelStatusCounts.available})
+                </option>
+                <option value="low">
+                  Low Stock ({parcelStatusCounts.low})
+                </option>
+                <option value="critical">
+                  Critical Level ({parcelStatusCounts.critical})
+                </option>
+                <option value="out">
+                  Out of Stock ({parcelStatusCounts.out})
+                </option>
+              </select>
+            </div>
+
+            {/* Parcel Items Table */}
+            <div
+              className={`rounded-xl shadow-lg overflow-hidden border ${
                 darkMode
-                  ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
-                  : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
+                  ? "bg-[#1F2937] border-[#374151]"
+                  : "bg-white border-[#E5E7EB]"
               }`}
             >
-              <option value="all">All Items ({items.length})</option>
-              <option value="available">
-                Available ({statusCounts.available})
-              </option>
-              <option value="low">Low Stock ({statusCounts.low})</option>
-              <option value="critical">
-                Critical Level ({statusCounts.critical})
-              </option>
-              <option value="out">Out of Stock ({statusCounts.out})</option>
-            </select>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead
+                    className={
+                      darkMode
+                        ? "bg-[#374151] text-gray-300"
+                        : "bg-[#1e40af] text-white"
+                    }
+                  >
+                    <tr>
+                      {[
+                        "Item Name",
+                        "Current Stock",
+                        "Status",
+                        "Date Added",
+                      ].map((head) => (
+                        <th
+                          key={head}
+                          className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                        >
+                          {head}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody
+                    className={`divide-y ${
+                      darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
+                    }`}
+                  >
+                    {filteredParcelItems.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="px-4 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <Package
+                              className={`w-12 h-12 ${
+                                darkMode ? "text-gray-600" : "text-gray-400"
+                              }`}
+                            />
+                            <p
+                              className={`text-sm ${
+                                darkMode ? "text-gray-400" : "text-gray-600"
+                              }`}
+                            >
+                              No parcels found
+                            </p>
+                            <p
+                              className={`text-xs ${
+                                darkMode ? "text-gray-500" : "text-gray-500"
+                              }`}
+                            >
+                              Try changing the filter
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredParcelItems.map((item, index) => (
+                        <tr
+                          key={index}
+                          className={`transition-colors ${
+                            darkMode
+                              ? "hover:bg-[#374151]"
+                              : "hover:bg-[#F9FAFB]"
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-2 h-2 rounded-full ${getIndicatorColor(
+                                  item.quantity,
+                                )}`}
+                              />
+                              {item.name}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {item.quantity} units
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                item.quantity,
+                                darkMode,
+                              )}`}
+                            >
+                              {getStatusIcon(item.quantity)}
+                              {getStatusLabel(item.quantity)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          {/* Items Table */}
-          <div
-            className={`rounded-xl shadow-lg overflow-x-auto overflow-y-auto border animate__animated animate__fadeInUp max-h-[600px] ${
-              darkMode
-                ? "bg-[#1F2937] border-[#374151]"
-                : "bg-white border-[#E5E7EB]"
-            }`}
-          >
-            <table className="min-w-full w-full">
-              <thead
-                className={`sticky top-0 z-10 ${
+          {/* ============= PRODUCT SECTION ============= */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Box className="w-6 h-6 text-[#7c3aed]" />
+              <h2 className="text-xl font-bold">Product Inventory</h2>
+            </div>
+
+            {/* Product Status Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Out of Stock */}
+              <div
+                onClick={() => setFilterProductStatus("out")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterProductStatus === "out"
+                    ? "ring-2 ring-[#EF4444] shadow-[#EF4444]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
                   darkMode
-                    ? "bg-[#111827] border-b border-[#374151]"
-                    : "bg-[#F9FAFB] border-b border-[#E5E7EB]"
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#FEE2E2]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.5s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <XCircle className="w-5 h-5 text-[#EF4444]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#EF4444]/20" : "bg-[#FEE2E2]"
+                    } text-[#EF4444]`}
+                  >
+                    Critical
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Out of Stock
+                </p>
+                <p className="text-2xl font-bold">{productStatusCounts.out}</p>
+              </div>
+
+              {/* Critical Level */}
+              <div
+                onClick={() => setFilterProductStatus("critical")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterProductStatus === "critical"
+                    ? "ring-2 ring-[#F97316] shadow-[#F97316]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#FFEDD5]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.6s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <AlertTriangle className="w-5 h-5 text-[#F97316]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#F97316]/20" : "bg-[#FFEDD5]"
+                    } text-[#F97316]`}
+                  >
+                    Alert
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Critical Level
+                </p>
+                <p className="text-2xl font-bold">
+                  {productStatusCounts.critical}
+                </p>
+              </div>
+
+              {/* Low Stock */}
+              <div
+                onClick={() => setFilterProductStatus("low")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterProductStatus === "low"
+                    ? "ring-2 ring-[#FACC15] shadow-[#FACC15]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#FEF9C3]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.7s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <TrendingDown className="w-5 h-5 text-[#FACC15]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#FACC15]/20" : "bg-[#FEF9C3]"
+                    } text-[#FACC15]`}
+                  >
+                    Warning
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Low Stock
+                </p>
+                <p className="text-2xl font-bold">{productStatusCounts.low}</p>
+              </div>
+
+              {/* Available */}
+              <div
+                onClick={() => setFilterProductStatus("available")}
+                className={`p-3 sm:p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl group ${
+                  filterProductStatus === "available"
+                    ? "ring-2 ring-[#22C55E] shadow-[#22C55E]/30 shadow-lg scale-[1.03]"
+                    : ""
+                } ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151] hover:bg-[#374151]"
+                    : "bg-white border-[#E5E7EB] hover:bg-[#DCFCE7]"
+                } animate__animated animate__fadeInUp`}
+                style={{ animationDelay: "0.8s" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <Box className="w-5 h-5 text-[#22C55E]" />
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      darkMode ? "bg-[#22C55E]/20" : "bg-[#DCFCE7]"
+                    } text-[#22C55E]`}
+                  >
+                    Good
+                  </span>
+                </div>
+                <p
+                  className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Available
+                </p>
+                <p className="text-2xl font-bold">
+                  {productStatusCounts.available}
+                </p>
+              </div>
+            </div>
+
+            {/* Product Filter Dropdown */}
+            <div className="mb-4">
+              <label
+                className={`block text-sm font-medium mb-2 ${
+                  darkMode ? "text-gray-300" : "text-gray-700"
                 }`}
               >
-                <tr>
-                  {["Item Name", "Current Stock", "Status", "Date Added"].map(
-                    (head) => (
-                      <th
-                        key={head}
-                        className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap ${
-                          darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                        }`}
-                      >
-                        {head}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody
-                className={`divide-y ${
-                  darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
+                Filter Products by Status:
+              </label>
+              <select
+                value={filterProductStatus}
+                onChange={(e) => setFilterProductStatus(e.target.value)}
+                className={`border rounded-lg px-3 py-2 w-full sm:w-60 focus:outline-none focus:ring-2 transition-all text-sm ${
+                  darkMode
+                    ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white"
+                    : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black"
                 }`}
               >
-                {filteredItems.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className={`px-4 sm:px-6 py-12 sm:py-16 text-center ${
-                        darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
-                      }`}
-                    >
-                      <Package
-                        className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__bounce animate__infinite animate__slow ${
-                          darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
-                        }`}
-                      />
-                      <p className="text-base sm:text-lg font-medium mb-1">
-                        No items found
-                      </p>
-                      <p className="text-xs sm:text-sm opacity-75">
-                        Try changing the filter or add new items
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredItems.map((item, index) => (
-                    <tr
-                      key={item.id}
-                      className={`transition-all duration-200 animate__animated animate__fadeInUp ${
-                        darkMode
-                          ? "hover:bg-[#374151]/40"
-                          : "hover:bg-[#F3F4F6]"
-                      }`}
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
-                      <td
-                        className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap font-semibold text-sm sm:text-base ${
-                          darkMode ? "text-[#FFFFFF]" : "text-[#111827]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-2 h-2 rounded-full animate__animated animate__pulse animate__infinite ${getIndicatorColor(
-                              item.quantity,
-                            )}`}
-                          />
-                          {item.name}
-                        </div>
-                      </td>
-                      <td
-                        className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base font-semibold ${
-                          item.quantity === 0
-                            ? "text-[#EF4444]"
-                            : item.quantity <= 5
-                              ? "text-[#F97316]"
-                              : item.quantity < 10
-                                ? "text-[#FACC15]"
-                                : "text-[#22C55E]"
-                        }`}
-                      >
-                        {item.quantity} units
-                      </td>
-                      <td
-                        className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap`}
-                      >
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold ${getStatusColor(
-                            item.quantity,
-                            darkMode,
-                          )}`}
+                <option value="all">
+                  All Products ({productItems.length})
+                </option>
+                <option value="available">
+                  Available ({productStatusCounts.available})
+                </option>
+                <option value="low">
+                  Low Stock ({productStatusCounts.low})
+                </option>
+                <option value="critical">
+                  Critical Level ({productStatusCounts.critical})
+                </option>
+                <option value="out">
+                  Out of Stock ({productStatusCounts.out})
+                </option>
+              </select>
+            </div>
+
+            {/* Product Items Table */}
+            <div
+              className={`rounded-xl shadow-lg overflow-hidden border ${
+                darkMode
+                  ? "bg-[#1F2937] border-[#374151]"
+                  : "bg-white border-[#E5E7EB]"
+              }`}
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead
+                    className={
+                      darkMode
+                        ? "bg-[#374151] text-gray-300"
+                        : "bg-[#7c3aed] text-white"
+                    }
+                  >
+                    <tr>
+                      {[
+                        "Product Name",
+                        "Current Stock",
+                        "Status",
+                        "Date Added",
+                      ].map((head) => (
+                        <th
+                          key={head}
+                          className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
                         >
-                          {getStatusIcon(item.quantity)}
-                          {getStatusLabel(item.quantity)}
-                        </span>
-                      </td>
-                      <td
-                        className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
-                          darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                        }`}
-                      >
-                        {item.date}
-                      </td>
+                          {head}
+                        </th>
+                      ))}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody
+                    className={`divide-y ${
+                      darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
+                    }`}
+                  >
+                    {filteredProductItems.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="px-4 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <Box
+                              className={`w-12 h-12 ${
+                                darkMode ? "text-gray-600" : "text-gray-400"
+                              }`}
+                            />
+                            <p
+                              className={`text-sm ${
+                                darkMode ? "text-gray-400" : "text-gray-600"
+                              }`}
+                            >
+                              No products found
+                            </p>
+                            <p
+                              className={`text-xs ${
+                                darkMode ? "text-gray-500" : "text-gray-500"
+                              }`}
+                            >
+                              Try changing the filter
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredProductItems.map((item, index) => (
+                        <tr
+                          key={index}
+                          className={`transition-colors ${
+                            darkMode
+                              ? "hover:bg-[#374151]"
+                              : "hover:bg-[#F9FAFB]"
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-2 h-2 rounded-full ${getIndicatorColor(
+                                  item.quantity,
+                                )}`}
+                              />
+                              {item.product_name}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {item.quantity} units
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                                item.quantity,
+                                darkMode,
+                              )}`}
+                            >
+                              {getStatusIcon(item.quantity)}
+                              {getStatusLabel(item.quantity)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
