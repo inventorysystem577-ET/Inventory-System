@@ -6,6 +6,8 @@ import {
   Activity,
   Users,
   LogOut,
+  ArrowDownToLine,
+  ArrowUpFromLine,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { handleLogout } from "../controller/logoutController";
@@ -25,6 +27,18 @@ export default function Sidebar({
       label: "Dashboard",
       icon: BarChart3,
       path: "/view/dashboard",
+    },
+    {
+      id: "Product In",
+      label: "Product In",
+      icon: ArrowDownToLine,
+      path: "/view/product-in",
+    },
+    {
+      id: "Product Out",
+      label: "Product Out",
+      icon: ArrowUpFromLine,
+      path: "/view/product-out",
     },
     {
       id: "Parcel Shipped",

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import LoginPage from "./login/loginPage";
+import LoginPage from "./view/login/loginPage";
 
 export default function Home() {
   return (
