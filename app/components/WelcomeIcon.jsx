@@ -50,7 +50,7 @@ export default function WelcomeIcon() {
           {/* Logo with subtle corner radius */}
           <div className="relative w-full aspect-square">
             <Image
-              src="/logo2.gif"
+              src="/logo3.gif"
               alt="Company logo"
               fill
               sizes="(min-width: 1024px) 400px, (min-width: 768px) 320px, 200px"
