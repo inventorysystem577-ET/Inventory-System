@@ -2,10 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "../../hook/useAuth";
 import { useRouter } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import TopNavbar from "../../components/TopNavbar";
+import AuthGuard from "../../components/AuthGuard";
 import {
   PackageCheck,
   PackageOpen,
@@ -61,8 +61,6 @@ export default function page() {
   });
 
   const router = useRouter();
-
-  useAuth();
 
   // Helper to convert 24-hour time to 12-hour format
   const convertTo12Hour = (time24) => {
@@ -199,635 +197,837 @@ export default function page() {
     productStatusCounts.critical;
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-300 ${
-        darkMode ? "bg-[#111827] text-white" : "bg-[#F3F4F6] text-black"
-      }`}
-    >
-      {/* Top Navbar */}
-      <TopNavbar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
-      />
-
-      {/* Sidebar */}
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        darkMode={darkMode}
-      />
-
+    <AuthGuard darkMode={darkMode}>
       <div
-        className={`transition-all duration-300 ${
-          sidebarOpen ? "ml-64" : "ml-0"
-        } pt-16`}
+        className={`min-h-screen transition-colors duration-300 ${
+          darkMode ? "bg-[#111827] text-white" : "bg-[#F3F4F6] text-black"
+        }`}
       >
-        <div className="p-4 sm:p-6 lg:p-8">
-          {/* Summary Cards - Row 1: Main Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-            {/* Stock In (Parcel) - Royal Blue */}
-            <div
-              onClick={() => handleCardClick("/view/parcel-shipped")}
-              className="bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <PackageCheck className="w-10 h-10" />
-                <Clock className="w-5 h-5 opacity-70" />
-              </div>
-              <h3 className="text-sm font-medium opacity-90 mb-1">Stock In</h3>
-              <p className="text-3xl font-bold mb-2">{parcelShippedCount}</p>
-              <p className="text-xs opacity-75">Parcel items in stock</p>
-            </div>
+        {/* Top Navbar */}
+        <TopNavbar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+        />
 
-            {/* Stock Out (Parcel) - Orange */}
-            <div
-              onClick={() => handleCardClick("/view/parcel-delivery")}
-              className="bg-gradient-to-br from-[#ea580c] to-[#c2410c] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
-              style={{ animationDelay: "0.1s" }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <PackageOpen className="w-10 h-10" />
-                <TrendingDown className="w-5 h-5 opacity-70" />
-              </div>
-              <h3 className="text-sm font-medium opacity-90 mb-1">Stock Out</h3>
-              <p className="text-3xl font-bold mb-2">{parcelDeliveryCount}</p>
-              <p className="text-xs opacity-75">Parcel deliveries</p>
-            </div>
+        {/* Sidebar */}
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          darkMode={darkMode}
+        />
 
-            {/* Product IN - Purple */}
-            <div
-              onClick={() => handleCardClick("/view/product-in")}
-              className="bg-gradient-to-br from-[#7c3aed] to-[#6d28d9] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
-              style={{ animationDelay: "0.2s" }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <Box className="w-10 h-10" />
-                <Package className="w-5 h-5 opacity-70" />
-              </div>
-              <h3 className="text-sm font-medium opacity-90 mb-1">
-                Product IN
-              </h3>
-              <p className="text-3xl font-bold mb-2">{productInCount}</p>
-              <p className="text-xs opacity-75">Products in stock</p>
-            </div>
-
-            {/* Product OUT - Teal */}
-            <div
-              onClick={() => handleCardClick("/view/product-out")}
-              className="bg-gradient-to-br from-[#0d9488] to-[#0f766e] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
-              style={{ animationDelay: "0.3s" }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <Boxes className="w-10 h-10" />
-                <PackageOpen className="w-5 h-5 opacity-70" />
-              </div>
-              <h3 className="text-sm font-medium opacity-90 mb-1">
-                Product OUT
-              </h3>
-              <p className="text-3xl font-bold mb-2">{productOutCount}</p>
-              <p className="text-xs opacity-75">Products shipped</p>
-            </div>
-          </div>
-
-          {/* Summary Cards - Row 2: Parcel Stock Status */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              📦 Parcel Stock Status
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Out of Stock */}
+        <div
+          className={`transition-all duration-300 ${
+            sidebarOpen ? "ml-64" : "ml-0"
+          } pt-16`}
+        >
+          <div className="p-4 sm:p-6 lg:p-8">
+            {/* Summary Cards - Row 1: Main Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+              {/* Stock In (Parcel) - Royal Blue */}
               <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "out", "parcel")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "0.4s" }}
+                onClick={() => handleCardClick("/view/parcel-shipped")}
+                className="bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <XCircle className="w-6 h-6 text-red-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Critical</p>
-                  </div>
+                <div className="flex items-center justify-between mb-4">
+                  <PackageCheck className="w-10 h-10" />
+                  <Clock className="w-5 h-5 opacity-70" />
                 </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Out of Stock
-                </p>
-                <p className="text-2xl font-bold">{statusCounts.out}</p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-red-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        stockItems.length > 0
-                          ? (statusCounts.out / stockItems.length) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Critical Level */}
-              <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "critical", "parcel")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "0.5s" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <AlertTriangle className="w-6 h-6 text-orange-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Alert</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Critical Level
-                </p>
-                <p className="text-2xl font-bold">{statusCounts.critical}</p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        stockItems.length > 0
-                          ? (statusCounts.critical / stockItems.length) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Low Stock */}
-              <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "low", "parcel")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "0.6s" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <TrendingDown className="w-6 h-6 text-yellow-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Warning</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Low Stock
-                </p>
-                <p className="text-2xl font-bold">{statusCounts.low}</p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        stockItems.length > 0
-                          ? (statusCounts.low / stockItems.length) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Available */}
-              <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "available", "parcel")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "0.7s" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <Box className="w-6 h-6 text-green-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Good</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Available
-                </p>
-                <p className="text-2xl font-bold">{statusCounts.available}</p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        stockItems.length > 0
-                          ? (statusCounts.available / stockItems.length) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Summary Cards - Row 3: Product Stock Status */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              📦 Product Stock Status
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Product Out of Stock */}
-              <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "out", "product")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "0.8s" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <XCircle className="w-6 h-6 text-red-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Critical</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Out of Stock
-                </p>
-                <p className="text-2xl font-bold">{productStatusCounts.out}</p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-red-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        productIn.length > 0
-                          ? (productStatusCounts.out / productIn.length) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Product Critical */}
-              <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "critical", "product")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "0.9s" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <AlertTriangle className="w-6 h-6 text-orange-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Alert</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Critical Level
-                </p>
-                <p className="text-2xl font-bold">
-                  {productStatusCounts.critical}
-                </p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        productIn.length > 0
-                          ? (productStatusCounts.critical / productIn.length) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Product Low Stock */}
-              <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "low", "product")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "1s" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <TrendingDown className="w-6 h-6 text-yellow-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Warning</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Low Stock
-                </p>
-                <p className="text-2xl font-bold">{productStatusCounts.low}</p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        productIn.length > 0
-                          ? (productStatusCounts.low / productIn.length) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Product Available */}
-              <div
-                onClick={() =>
-                  handleCardClick("/view/out-of-stock", "available", "product")
-                }
-                className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
-                  darkMode
-                    ? "bg-gray-800 border border-gray-700"
-                    : "bg-white border border-gray-200"
-                }`}
-                style={{ animationDelay: "1.1s" }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <Box className="w-6 h-6 text-green-500" />
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Good</p>
-                  </div>
-                </div>
-                <p
-                  className={`text-sm mb-1 ${
-                    darkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  Available
-                </p>
-                <p className="text-2xl font-bold">
-                  {productStatusCounts.available}
-                </p>
-                <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                  <div
-                    className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${
-                        productIn.length > 0
-                          ? (productStatusCounts.available / productIn.length) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Alert Banner */}
-          {totalAlertsCount > 0 && (
-            <div
-              className={`p-4 rounded-xl mb-6 border-l-4 animate__animated animate__fadeInDown ${
-                darkMode
-                  ? "bg-[#7f1d1d]/20 border-[#EF4444]"
-                  : "bg-[#FEE2E2] border-[#DC2626]"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-[#EF4444] mb-1">
-                    ⚠️ Inventory Alert
-                  </h3>
-                  <p
-                    className={`text-sm ${
-                      darkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    Parcels:{" "}
-                    {statusCounts.out > 0 && `${statusCounts.out} out of stock`}
-                    {statusCounts.out > 0 && statusCounts.critical > 0 && " • "}
-                    {statusCounts.critical > 0 &&
-                      `${statusCounts.critical} critical`}
-                    {(statusCounts.out > 0 || statusCounts.critical > 0) &&
-                      (productStatusCounts.out > 0 ||
-                        productStatusCounts.critical > 0) &&
-                      " | "}
-                    Products:{" "}
-                    {productStatusCounts.out > 0 &&
-                      `${productStatusCounts.out} out of stock`}
-                    {productStatusCounts.out > 0 &&
-                      productStatusCounts.critical > 0 &&
-                      " • "}
-                    {productStatusCounts.critical > 0 &&
-                      `${productStatusCounts.critical} critical`}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tables Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Parcel Items Needing Attention */}
-            <div
-              className={`rounded-xl shadow-lg p-6 border ${
-                darkMode
-                  ? "bg-[#1F2937] border-[#374151]"
-                  : "bg-white border-[#E5E7EB]"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">
-                  Parcels Needing Attention
+                <h3 className="text-sm font-medium opacity-90 mb-1">
+                  Stock In
                 </h3>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    darkMode
-                      ? "bg-orange-900/30 text-orange-400"
-                      : "bg-orange-50 text-orange-700"
-                  }`}
-                >
-                  {itemsNeedingAttention.length}
-                </span>
+                <p className="text-3xl font-bold mb-2">{parcelShippedCount}</p>
+                <p className="text-xs opacity-75">Parcel items in stock</p>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead
-                    className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
-                  >
-                    <tr>
-                      {["Item", "Stock", "Status"].map((head) => (
-                        <th
-                          key={head}
-                          className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
-                            darkMode ? "text-gray-400" : "text-gray-700"
-                          }`}
-                        >
-                          {head}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody
-                    className={`divide-y ${
-                      darkMode ? "divide-[#374151]" : "divide-gray-200"
+              {/* Stock Out (Parcel) - Orange */}
+              <div
+                onClick={() => handleCardClick("/view/parcel-delivery")}
+                className="bg-gradient-to-br from-[#ea580c] to-[#c2410c] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
+                style={{ animationDelay: "0.1s" }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <PackageOpen className="w-10 h-10" />
+                  <TrendingDown className="w-5 h-5 opacity-70" />
+                </div>
+                <h3 className="text-sm font-medium opacity-90 mb-1">
+                  Stock Out
+                </h3>
+                <p className="text-3xl font-bold mb-2">{parcelDeliveryCount}</p>
+                <p className="text-xs opacity-75">Parcel deliveries</p>
+              </div>
+
+              {/* Product IN - Purple */}
+              <div
+                onClick={() => handleCardClick("/view/product-in")}
+                className="bg-gradient-to-br from-[#7c3aed] to-[#6d28d9] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
+                style={{ animationDelay: "0.2s" }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Box className="w-10 h-10" />
+                  <Package className="w-5 h-5 opacity-70" />
+                </div>
+                <h3 className="text-sm font-medium opacity-90 mb-1">
+                  Product IN
+                </h3>
+                <p className="text-3xl font-bold mb-2">{productInCount}</p>
+                <p className="text-xs opacity-75">Products in stock</p>
+              </div>
+
+              {/* Product OUT - Teal */}
+              <div
+                onClick={() => handleCardClick("/view/product-out")}
+                className="bg-gradient-to-br from-[#0d9488] to-[#0f766e] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
+                style={{ animationDelay: "0.3s" }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Boxes className="w-10 h-10" />
+                  <PackageOpen className="w-5 h-5 opacity-70" />
+                </div>
+                <h3 className="text-sm font-medium opacity-90 mb-1">
+                  Product OUT
+                </h3>
+                <p className="text-3xl font-bold mb-2">{productOutCount}</p>
+                <p className="text-xs opacity-75">Products shipped</p>
+              </div>
+            </div>
+
+            {/* Summary Cards - Row 2: Parcel Stock Status */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                📦 Parcel Stock Status
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Out of Stock */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "out", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.4s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <XCircle className="w-6 h-6 text-red-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Critical</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
                     }`}
                   >
-                    {itemsNeedingAttention.length === 0 ? (
+                    Out of Stock
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.out}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-red-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          stockItems.length > 0
+                            ? (statusCounts.out / stockItems.length) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Critical Level */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "critical", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.5s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <AlertTriangle className="w-6 h-6 text-orange-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Alert</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Critical Level
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.critical}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          stockItems.length > 0
+                            ? (statusCounts.critical / stockItems.length) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Low Stock */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "low", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.6s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <TrendingDown className="w-6 h-6 text-yellow-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Warning</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Low Stock
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.low}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          stockItems.length > 0
+                            ? (statusCounts.low / stockItems.length) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Available */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "available", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.7s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <Box className="w-6 h-6 text-green-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Good</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Available
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.available}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          stockItems.length > 0
+                            ? (statusCounts.available / stockItems.length) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Cards - Row 3: Product Stock Status */}
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                📦 Product Stock Status
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Product Out of Stock */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "out", "product")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.8s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <XCircle className="w-6 h-6 text-red-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Critical</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Out of Stock
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {productStatusCounts.out}
+                  </p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-red-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          productIn.length > 0
+                            ? (productStatusCounts.out / productIn.length) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Product Critical */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "critical", "product")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.9s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <AlertTriangle className="w-6 h-6 text-orange-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Alert</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Critical Level
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {productStatusCounts.critical}
+                  </p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          productIn.length > 0
+                            ? (productStatusCounts.critical /
+                                productIn.length) *
+                              100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Product Low Stock */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "low", "product")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "1s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <TrendingDown className="w-6 h-6 text-yellow-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Warning</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Low Stock
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {productStatusCounts.low}
+                  </p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          productIn.length > 0
+                            ? (productStatusCounts.low / productIn.length) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Product Available */}
+                <div
+                  onClick={() =>
+                    handleCardClick(
+                      "/view/out-of-stock",
+                      "available",
+                      "product",
+                    )
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "1.1s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <Box className="w-6 h-6 text-green-500" />
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">Good</p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    Available
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {productStatusCounts.available}
+                  </p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${
+                          productIn.length > 0
+                            ? (productStatusCounts.available /
+                                productIn.length) *
+                              100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Alert Banner */}
+            {totalAlertsCount > 0 && (
+              <div
+                className={`p-4 rounded-xl mb-6 border-l-4 animate__animated animate__fadeInDown ${
+                  darkMode
+                    ? "bg-[#7f1d1d]/20 border-[#EF4444]"
+                    : "bg-[#FEE2E2] border-[#DC2626]"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-[#EF4444] mb-1">
+                      ⚠️ Inventory Alert
+                    </h3>
+                    <p
+                      className={`text-sm ${
+                        darkMode ? "text-gray-300" : "text-gray-700"
+                      }`}
+                    >
+                      Parcels:{" "}
+                      {statusCounts.out > 0 &&
+                        `${statusCounts.out} out of stock`}
+                      {statusCounts.out > 0 &&
+                        statusCounts.critical > 0 &&
+                        " • "}
+                      {statusCounts.critical > 0 &&
+                        `${statusCounts.critical} critical`}
+                      {(statusCounts.out > 0 || statusCounts.critical > 0) &&
+                        (productStatusCounts.out > 0 ||
+                          productStatusCounts.critical > 0) &&
+                        " | "}
+                      Products:{" "}
+                      {productStatusCounts.out > 0 &&
+                        `${productStatusCounts.out} out of stock`}
+                      {productStatusCounts.out > 0 &&
+                        productStatusCounts.critical > 0 &&
+                        " • "}
+                      {productStatusCounts.critical > 0 &&
+                        `${productStatusCounts.critical} critical`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tables Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Parcel Items Needing Attention */}
+              <div
+                className={`rounded-xl shadow-lg p-6 border ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151]"
+                    : "bg-white border-[#E5E7EB]"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Parcels Needing Attention
+                  </h3>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      darkMode
+                        ? "bg-orange-900/30 text-orange-400"
+                        : "bg-orange-50 text-orange-700"
+                    }`}
+                  >
+                    {itemsNeedingAttention.length}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead
+                      className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                    >
                       <tr>
-                        <td colSpan="3" className="px-4 py-8 text-center">
-                          <p
-                            className={`text-sm ${
-                              darkMode ? "text-gray-400" : "text-gray-600"
+                        {["Item", "Stock", "Status"].map((head) => (
+                          <th
+                            key={head}
+                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                              darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
-                            All items well-stocked
-                          </p>
-                        </td>
+                            {head}
+                          </th>
+                        ))}
                       </tr>
-                    ) : (
-                      itemsNeedingAttention.slice(0, 5).map((item) => (
+                    </thead>
+                    <tbody
+                      className={`divide-y ${
+                        darkMode ? "divide-[#374151]" : "divide-gray-200"
+                      }`}
+                    >
+                      {itemsNeedingAttention.length === 0 ? (
+                        <tr>
+                          <td colSpan="3" className="px-4 py-8 text-center">
+                            <p
+                              className={`text-sm ${
+                                darkMode ? "text-gray-400" : "text-gray-600"
+                              }`}
+                            >
+                              All items well-stocked
+                            </p>
+                          </td>
+                        </tr>
+                      ) : (
+                        itemsNeedingAttention.slice(0, 5).map((item) => (
+                          <tr
+                            key={item.id}
+                            className={`${
+                              darkMode
+                                ? "hover:bg-[#374151]"
+                                : "hover:bg-gray-50"
+                            }`}
+                          >
+                            <td className="px-4 py-3 text-sm">{item.name}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {item.quantity}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
+                                  item.quantity,
+                                  darkMode,
+                                )}`}
+                              >
+                                {getStatusIcon(item.quantity)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Products Needing Attention */}
+              <div
+                className={`rounded-xl shadow-lg p-6 border ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151]"
+                    : "bg-white border-[#E5E7EB]"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Products Needing Attention
+                  </h3>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      darkMode
+                        ? "bg-orange-900/30 text-orange-400"
+                        : "bg-orange-50 text-orange-700"
+                    }`}
+                  >
+                    {productsNeedingAttention.length}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead
+                      className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                    >
+                      <tr>
+                        {["Product", "Stock", "Status"].map((head) => (
+                          <th
+                            key={head}
+                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                              darkMode ? "text-gray-400" : "text-gray-700"
+                            }`}
+                          >
+                            {head}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody
+                      className={`divide-y ${
+                        darkMode ? "divide-[#374151]" : "divide-gray-200"
+                      }`}
+                    >
+                      {productsNeedingAttention.length === 0 ? (
+                        <tr>
+                          <td colSpan="3" className="px-4 py-8 text-center">
+                            <p
+                              className={`text-sm ${
+                                darkMode ? "text-gray-400" : "text-gray-600"
+                              }`}
+                            >
+                              All products well-stocked
+                            </p>
+                          </td>
+                        </tr>
+                      ) : (
+                        productsNeedingAttention.slice(0, 5).map((item) => (
+                          <tr
+                            key={item.id}
+                            className={`${
+                              darkMode
+                                ? "hover:bg-[#374151]"
+                                : "hover:bg-gray-50"
+                            }`}
+                          >
+                            <td className="px-4 py-3 text-sm">
+                              {item.product_name}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {item.quantity}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
+                                  item.quantity,
+                                  darkMode,
+                                )}`}
+                              >
+                                {getStatusIcon(item.quantity)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity Tables */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                📋 Recent Activity
+              </h2>
+            </div>
+
+            {/* Parcel Tables */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Recent Parcel IN */}
+              <div
+                className={`rounded-xl shadow-lg p-6 border ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151]"
+                    : "bg-white border-[#E5E7EB]"
+                }`}
+              >
+                <h3 className="text-lg font-semibold mb-4">Recent Parcel IN</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead
+                      className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                    >
+                      <tr>
+                        {["Item", "Qty", "Date"].map((head) => (
+                          <th
+                            key={head}
+                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                              darkMode ? "text-gray-400" : "text-gray-700"
+                            }`}
+                          >
+                            {head}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody
+                      className={`divide-y ${
+                        darkMode ? "divide-[#374151]" : "divide-gray-200"
+                      }`}
+                    >
+                      {parcelShipped.slice(0, 5).map((item, index) => (
                         <tr
-                          key={item.id}
+                          key={index}
                           className={`${
                             darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
                           }`}
                         >
                           <td className="px-4 py-3 text-sm">{item.name}</td>
                           <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
-                                item.quantity,
-                                darkMode,
-                              )}`}
-                            >
-                              {getStatusIcon(item.quantity)}
-                            </span>
-                          </td>
+                          <td className="px-4 py-3 text-sm">{item.date}</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Parcel OUT */}
+              <div
+                className={`rounded-xl shadow-lg p-6 border ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151]"
+                    : "bg-white border-[#E5E7EB]"
+                }`}
+              >
+                <h3 className="text-lg font-semibold mb-4">
+                  Recent Parcel OUT
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead
+                      className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                    >
+                      <tr>
+                        {["Item", "Qty", "Date"].map((head) => (
+                          <th
+                            key={head}
+                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                              darkMode ? "text-gray-400" : "text-gray-700"
+                            }`}
+                          >
+                            {head}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody
+                      className={`divide-y ${
+                        darkMode ? "divide-[#374151]" : "divide-gray-200"
+                      }`}
+                    >
+                      {parcelDelivery.slice(0, 5).map((item, index) => (
+                        <tr
+                          key={index}
+                          className={`${
+                            darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-sm">{item.name}</td>
+                          <td className="px-4 py-3 text-sm">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
-            {/* Products Needing Attention */}
-            <div
-              className={`rounded-xl shadow-lg p-6 border ${
-                darkMode
-                  ? "bg-[#1F2937] border-[#374151]"
-                  : "bg-white border-[#E5E7EB]"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">
-                  Products Needing Attention
+            {/* Product Tables */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Product IN */}
+              <div
+                className={`rounded-xl shadow-lg p-6 border ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151]"
+                    : "bg-white border-[#E5E7EB]"
+                }`}
+              >
+                <h3 className="text-lg font-semibold mb-4">
+                  Recent Product IN
                 </h3>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    darkMode
-                      ? "bg-orange-900/30 text-orange-400"
-                      : "bg-orange-50 text-orange-700"
-                  }`}
-                >
-                  {productsNeedingAttention.length}
-                </span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead
-                    className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
-                  >
-                    <tr>
-                      {["Product", "Stock", "Status"].map((head) => (
-                        <th
-                          key={head}
-                          className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
-                            darkMode ? "text-gray-400" : "text-gray-700"
-                          }`}
-                        >
-                          {head}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody
-                    className={`divide-y ${
-                      darkMode ? "divide-[#374151]" : "divide-gray-200"
-                    }`}
-                  >
-                    {productsNeedingAttention.length === 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead
+                      className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                    >
                       <tr>
-                        <td colSpan="3" className="px-4 py-8 text-center">
-                          <p
-                            className={`text-sm ${
-                              darkMode ? "text-gray-400" : "text-gray-600"
+                        {["Product", "Qty", "Date"].map((head) => (
+                          <th
+                            key={head}
+                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                              darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
-                            All products well-stocked
-                          </p>
-                        </td>
+                            {head}
+                          </th>
+                        ))}
                       </tr>
-                    ) : (
-                      productsNeedingAttention.slice(0, 5).map((item) => (
+                    </thead>
+                    <tbody
+                      className={`divide-y ${
+                        darkMode ? "divide-[#374151]" : "divide-gray-200"
+                      }`}
+                    >
+                      {productIn.slice(0, 5).map((item, index) => (
                         <tr
-                          key={item.id}
+                          key={index}
                           className={`${
                             darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
                           }`}
@@ -836,239 +1036,70 @@ export default function page() {
                             {item.product_name}
                           </td>
                           <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
-                                item.quantity,
-                                darkMode,
-                              )}`}
-                            >
-                              {getStatusIcon(item.quantity)}
-                            </span>
-                          </td>
+                          <td className="px-4 py-3 text-sm">{item.date}</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Recent Activity Tables */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              📋 Recent Activity
-            </h2>
-          </div>
-
-          {/* Parcel Tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Recent Parcel IN */}
-            <div
-              className={`rounded-xl shadow-lg p-6 border ${
-                darkMode
-                  ? "bg-[#1F2937] border-[#374151]"
-                  : "bg-white border-[#E5E7EB]"
-              }`}
-            >
-              <h3 className="text-lg font-semibold mb-4">Recent Parcel IN</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead
-                    className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
-                  >
-                    <tr>
-                      {["Item", "Qty", "Date"].map((head) => (
-                        <th
-                          key={head}
-                          className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
-                            darkMode ? "text-gray-400" : "text-gray-700"
+              {/* Recent Product OUT */}
+              <div
+                className={`rounded-xl shadow-lg p-6 border ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151]"
+                    : "bg-white border-[#E5E7EB]"
+                }`}
+              >
+                <h3 className="text-lg font-semibold mb-4">
+                  Recent Product OUT
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead
+                      className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                    >
+                      <tr>
+                        {["Product", "Qty", "Date"].map((head) => (
+                          <th
+                            key={head}
+                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                              darkMode ? "text-gray-400" : "text-gray-700"
+                            }`}
+                          >
+                            {head}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody
+                      className={`divide-y ${
+                        darkMode ? "divide-[#374151]" : "divide-gray-200"
+                      }`}
+                    >
+                      {productOut.slice(0, 5).map((item, index) => (
+                        <tr
+                          key={index}
+                          className={`${
+                            darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
                           }`}
                         >
-                          {head}
-                        </th>
+                          <td className="px-4 py-3 text-sm">
+                            {item.product_name}
+                          </td>
+                          <td className="px-4 py-3 text-sm">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                        </tr>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody
-                    className={`divide-y ${
-                      darkMode ? "divide-[#374151]" : "divide-gray-200"
-                    }`}
-                  >
-                    {parcelShipped.slice(0, 5).map((item, index) => (
-                      <tr
-                        key={index}
-                        className={`${
-                          darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-4 py-3 text-sm">{item.name}</td>
-                        <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                        <td className="px-4 py-3 text-sm">{item.date}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Recent Parcel OUT */}
-            <div
-              className={`rounded-xl shadow-lg p-6 border ${
-                darkMode
-                  ? "bg-[#1F2937] border-[#374151]"
-                  : "bg-white border-[#E5E7EB]"
-              }`}
-            >
-              <h3 className="text-lg font-semibold mb-4">Recent Parcel OUT</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead
-                    className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
-                  >
-                    <tr>
-                      {["Item", "Qty", "Date"].map((head) => (
-                        <th
-                          key={head}
-                          className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
-                            darkMode ? "text-gray-400" : "text-gray-700"
-                          }`}
-                        >
-                          {head}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody
-                    className={`divide-y ${
-                      darkMode ? "divide-[#374151]" : "divide-gray-200"
-                    }`}
-                  >
-                    {parcelDelivery.slice(0, 5).map((item, index) => (
-                      <tr
-                        key={index}
-                        className={`${
-                          darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-4 py-3 text-sm">{item.name}</td>
-                        <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                        <td className="px-4 py-3 text-sm">{item.date}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Product Tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Product IN */}
-            <div
-              className={`rounded-xl shadow-lg p-6 border ${
-                darkMode
-                  ? "bg-[#1F2937] border-[#374151]"
-                  : "bg-white border-[#E5E7EB]"
-              }`}
-            >
-              <h3 className="text-lg font-semibold mb-4">Recent Product IN</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead
-                    className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
-                  >
-                    <tr>
-                      {["Product", "Qty", "Date"].map((head) => (
-                        <th
-                          key={head}
-                          className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
-                            darkMode ? "text-gray-400" : "text-gray-700"
-                          }`}
-                        >
-                          {head}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody
-                    className={`divide-y ${
-                      darkMode ? "divide-[#374151]" : "divide-gray-200"
-                    }`}
-                  >
-                    {productIn.slice(0, 5).map((item, index) => (
-                      <tr
-                        key={index}
-                        className={`${
-                          darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-4 py-3 text-sm">
-                          {item.product_name}
-                        </td>
-                        <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                        <td className="px-4 py-3 text-sm">{item.date}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Recent Product OUT */}
-            <div
-              className={`rounded-xl shadow-lg p-6 border ${
-                darkMode
-                  ? "bg-[#1F2937] border-[#374151]"
-                  : "bg-white border-[#E5E7EB]"
-              }`}
-            >
-              <h3 className="text-lg font-semibold mb-4">Recent Product OUT</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead
-                    className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
-                  >
-                    <tr>
-                      {["Product", "Qty", "Date"].map((head) => (
-                        <th
-                          key={head}
-                          className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
-                            darkMode ? "text-gray-400" : "text-gray-700"
-                          }`}
-                        >
-                          {head}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody
-                    className={`divide-y ${
-                      darkMode ? "divide-[#374151]" : "divide-gray-200"
-                    }`}
-                  >
-                    {productOut.slice(0, 5).map((item, index) => (
-                      <tr
-                        key={index}
-                        className={`${
-                          darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-4 py-3 text-sm">
-                          {item.product_name}
-                        </td>
-                        <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                        <td className="px-4 py-3 text-sm">{item.date}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

@@ -17,7 +17,7 @@ import {
   fetchProductInController,
   handleAddProductOut,
 } from "../../controller/productController";
-
+import AuthGuard from "../../components/AuthGuard";
 export default function ProductOutPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("product-out");
@@ -204,373 +204,377 @@ export default function ProductOutPage() {
   };
 
   return (
-    <div
-      className={
-        darkMode
-          ? "dark min-h-screen bg-[#0B0B0B] text-white"
-          : "min-h-screen bg-[#F9FAFB] text-black"
-      }
-    >
-      {/* Navbar */}
+    <AuthGuard darkMode={darkMode}>
       <div
-        className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b shadow-sm ${darkMode ? "bg-[#111827]/90 border-[#374151]" : "bg-white/90 border-[#E5E7EB]"}`}
+        className={
+          darkMode
+            ? "dark min-h-screen bg-[#0B0B0B] text-white"
+            : "min-h-screen bg-[#F9FAFB] text-black"
+        }
       >
-        <TopNavbar
+        {/* Navbar */}
+        <div
+          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b shadow-sm ${darkMode ? "bg-[#111827]/90 border-[#374151]" : "bg-white/90 border-[#E5E7EB]"}`}
+        >
+          <TopNavbar
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+          />
+        </div>
+
+        {/* Sidebar */}
+        <Sidebar
           sidebarOpen={sidebarOpen}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
           setSidebarOpen={setSidebarOpen}
           darkMode={darkMode}
-          setDarkMode={setDarkMode}
         />
-      </div>
 
-      {/* Sidebar */}
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        setSidebarOpen={setSidebarOpen}
-        darkMode={darkMode}
-      />
-
-      {/* Main */}
-      <main
-        className={`pt-20 transition-all duration-300 ${sidebarOpen ? "lg:ml-64" : ""}`}
-      >
-        <div className="max-w-[1200px] mx-auto px-6 py-8">
-          {/* Header */}
-          <div className="mb-10">
-            <div className="flex items-center justify-center gap-4 mb-2">
-              <div
-                className={`flex-1 h-[2px] ${darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"}`}
-              ></div>
-              <div className="flex items-center gap-2 px-3">
-                <PackageCheck
-                  className={`w-6 h-6 ${darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"}`}
-                />
-                <h1 className="text-3xl font-bold tracking-wide">
-                  Product OUT
-                </h1>
+        {/* Main */}
+        <main
+          className={`pt-20 transition-all duration-300 ${sidebarOpen ? "lg:ml-64" : ""}`}
+        >
+          <div className="max-w-[1200px] mx-auto px-6 py-8">
+            {/* Header */}
+            <div className="mb-10">
+              <div className="flex items-center justify-center gap-4 mb-2">
+                <div
+                  className={`flex-1 h-[2px] ${darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"}`}
+                ></div>
+                <div className="flex items-center gap-2 px-3">
+                  <PackageCheck
+                    className={`w-6 h-6 ${darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"}`}
+                  />
+                  <h1 className="text-3xl font-bold tracking-wide">
+                    Product OUT
+                  </h1>
+                </div>
+                <div
+                  className={`flex-1 h-[2px] ${darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"}`}
+                ></div>
               </div>
-              <div
-                className={`flex-1 h-[2px] ${darkMode ? "bg-[#374151]" : "bg-[#D1D5DB]"}`}
-              ></div>
+              <p
+                className={`text-center text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+              >
+                Record items leaving your inventory
+              </p>
             </div>
-            <p
-              className={`text-center text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+
+            {/* Form */}
+            <form
+              onSubmit={handleAddItem}
+              className={`p-6 rounded-xl shadow-lg mb-8 border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
             >
-              Record items leaving your inventory
-            </p>
-          </div>
-
-          {/* Form */}
-          <form
-            onSubmit={handleAddItem}
-            className={`p-6 rounded-xl shadow-lg mb-8 border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
-          >
-            <div className="flex items-center gap-2 mb-6">
-              <Plus
-                className={`w-5 h-5 ${darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"}`}
-              />
-              <h2 className="text-lg font-semibold">Add Product OUT</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4">
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
-                >
-                  Product Name
-                </label>
-                <select
-                  value={productName}
-                  onChange={handleProductSelect}
-                  className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
-                  required
-                >
-                  <option value="">Select a product</option>
-                  {availableProducts.map((product) => (
-                    <option key={product.id} value={product.product_name}>
-                      {product.product_name} (Stock: {product.quantity})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
-                >
-                  Quantity
-                  {maxQuantity > 0 && (
-                    <span
-                      className={`ml-2 text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
-                    >
-                      (Max: {maxQuantity})
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max={maxQuantity || 1}
-                  value={quantity}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (value <= maxQuantity) {
-                      setQuantity(value);
-                    }
-                  }}
-                  className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
-                  required
-                  disabled={!productName}
+              <div className="flex items-center gap-2 mb-6">
+                <Plus
+                  className={`w-5 h-5 ${darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"}`}
                 />
+                <h2 className="text-lg font-semibold">Add Product OUT</h2>
               </div>
 
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
-                >
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
-                >
-                  Time
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    value={timeHour}
-                    onChange={(e) => setTimeHour(e.target.value)}
-                    className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4">
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
                   >
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                      <option key={h} value={h}>
-                        {h}
+                    Product Name
+                  </label>
+                  <select
+                    value={productName}
+                    onChange={handleProductSelect}
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    required
+                  >
+                    <option value="">Select a product</option>
+                    {availableProducts.map((product) => (
+                      <option key={product.id} value={product.product_name}>
+                        {product.product_name} (Stock: {product.quantity})
                       </option>
                     ))}
-                  </select>
-                  <select
-                    value={timeMinute}
-                    onChange={(e) => setTimeMinute(e.target.value)}
-                    className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
-                  >
-                    {Array.from({ length: 60 }, (_, i) =>
-                      i.toString().padStart(2, "0"),
-                    ).map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={timeAMPM}
-                    onChange={(e) => setTimeAMPM(e.target.value)}
-                    className={`border rounded-lg px-2 py-2 w-20 focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
                   </select>
                 </div>
-              </div>
-            </div>
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!productName || availableProducts.length === 0}
-              >
-                <Plus className="w-5 h-5" /> Add Product OUT
-              </button>
-            </div>
-
-            {/* No products warning */}
-            {availableProducts.length === 0 && (
-              <div
-                className={`mt-4 p-4 rounded-lg ${darkMode ? "bg-yellow-900/20 border border-yellow-800" : "bg-yellow-50 border border-yellow-200"}`}
-              >
-                <p
-                  className={`text-sm ${darkMode ? "text-yellow-300" : "text-yellow-800"}`}
-                >
-                  ⚠️ No products available in inventory. Please add products
-                  first in Product IN.
-                </p>
-              </div>
-            )}
-          </form>
-
-          {/* Table */}
-          <div
-            className={`rounded-xl shadow-xl overflow-hidden border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                <thead
-                  className={
-                    darkMode
-                      ? "bg-[#111827] text-[#D1D5DB]"
-                      : "bg-[#F9FAFB] text-[#374151]"
-                  }
-                >
-                  <tr>
-                    {["ID", "Product", "Quantity", "Date", "Time Out"].map(
-                      (head) => (
-                        <th
-                          key={head}
-                          className="p-3 text-left text-xs font-semibold uppercase tracking-wider"
-                        >
-                          {head}
-                        </th>
-                      ),
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
+                  >
+                    Quantity
+                    {maxQuantity > 0 && (
+                      <span
+                        className={`ml-2 text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                      >
+                        (Max: {maxQuantity})
+                      </span>
                     )}
-                  </tr>
-                </thead>
-                <tbody
-                  className={darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={maxQuantity || 1}
+                    value={quantity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value <= maxQuantity) {
+                        setQuantity(value);
+                      }
+                    }}
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    required
+                    disabled={!productName}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
+                  >
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
+                  >
+                    Time
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={timeHour}
+                      onChange={(e) => setTimeHour(e.target.value)}
+                      className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                        <option key={h} value={h}>
+                          {h}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={timeMinute}
+                      onChange={(e) => setTimeMinute(e.target.value)}
+                      className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    >
+                      {Array.from({ length: 60 }, (_, i) =>
+                        i.toString().padStart(2, "0"),
+                      ).map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={timeAMPM}
+                      onChange={(e) => setTimeAMPM(e.target.value)}
+                      className={`border rounded-lg px-2 py-2 w-20 focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!productName || availableProducts.length === 0}
                 >
-                  {currentItems.length === 0 ? (
+                  <Plus className="w-5 h-5" /> Add Product OUT
+                </button>
+              </div>
+
+              {/* No products warning */}
+              {availableProducts.length === 0 && (
+                <div
+                  className={`mt-4 p-4 rounded-lg ${darkMode ? "bg-yellow-900/20 border border-yellow-800" : "bg-yellow-50 border border-yellow-200"}`}
+                >
+                  <p
+                    className={`text-sm ${darkMode ? "text-yellow-300" : "text-yellow-800"}`}
+                  >
+                    ⚠️ No products available in inventory. Please add products
+                    first in Product IN.
+                  </p>
+                </div>
+              )}
+            </form>
+
+            {/* Table */}
+            <div
+              className={`rounded-xl shadow-xl overflow-hidden border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead
+                    className={
+                      darkMode
+                        ? "bg-[#111827] text-[#D1D5DB]"
+                        : "bg-[#F9FAFB] text-[#374151]"
+                    }
+                  >
                     <tr>
-                      <td
-                        colSpan="5"
-                        className={`text-center p-8 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
-                      >
-                        <PackageCheck
-                          className={`w-12 h-12 mx-auto mb-3 ${darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"}`}
-                        />
-                        <p className="text-base font-medium">
-                          No products out yet
-                        </p>
-                        <p className="text-xs opacity-75">
-                          Add your first product using the form above
-                        </p>
-                      </td>
-                    </tr>
-                  ) : (
-                    currentItems.map((item) => (
-                      <tr
-                        key={item.id}
-                        className={`border-t ${darkMode ? "border-[#374151] hover:bg-[#374151]/40" : "border-[#E5E7EB] hover:bg-[#F3F4F6]"} transition-colors`}
-                      >
-                        <td className="p-3 font-medium">{item.id}</td>
-                        <td className="p-3">{item.product_name}</td>
-                        <td className="p-3">
-                          <span
-                            className={`px-3 py-1 rounded-lg font-bold text-xs ${darkMode ? "bg-[#F87171]/20 text-[#F87171]" : "bg-[#FEE2E2] text-[#B91C1C]"}`}
+                      {["ID", "Product", "Quantity", "Date", "Time Out"].map(
+                        (head) => (
+                          <th
+                            key={head}
+                            className="p-3 text-left text-xs font-semibold uppercase tracking-wider"
                           >
-                            {item.quantity}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 opacity-50" />
-                            {item.date}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 opacity-50" />
-                            {formatTo12Hour(item.time_out)}
-                          </div>
+                            {head}
+                          </th>
+                        ),
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody
+                    className={
+                      darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
+                    }
+                  >
+                    {currentItems.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="5"
+                          className={`text-center p-8 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                        >
+                          <PackageCheck
+                            className={`w-12 h-12 mx-auto mb-3 ${darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"}`}
+                          />
+                          <p className="text-base font-medium">
+                            No products out yet
+                          </p>
+                          <p className="text-xs opacity-75">
+                            Add your first product using the form above
+                          </p>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {/* Pagination */}
-            {items.length > itemsPerPage && (
-              <div
-                className={`flex items-center justify-between px-4 py-3 border-t ${darkMode ? "border-[#374151]" : "border-[#E5E7EB]"}`}
-              >
-                <div
-                  className={`text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
-                >
-                  Showing {indexOfFirstItem + 1} to{" "}
-                  {Math.min(indexOfLastItem, items.length)} of {items.length}{" "}
-                  entries
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Previous Button */}
-                  <button
-                    onClick={goToPrevPage}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-lg transition-all ${
-                      currentPage === 1
-                        ? darkMode
-                          ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
-                          : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
-                        : darkMode
-                          ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
-                          : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
-                    }`}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-
-                  {/* Page Numbers */}
-                  <div className="flex items-center gap-1">
-                    {getPageNumbers().map((pageNum, idx) =>
-                      pageNum === "..." ? (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          className={`px-3 py-2 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                    ) : (
+                      currentItems.map((item) => (
+                        <tr
+                          key={item.id}
+                          className={`border-t ${darkMode ? "border-[#374151] hover:bg-[#374151]/40" : "border-[#E5E7EB] hover:bg-[#F3F4F6]"} transition-colors`}
                         >
-                          ...
-                        </span>
-                      ) : (
-                        <button
-                          key={pageNum}
-                          onClick={() => paginate(pageNum)}
-                          className={`px-3 py-2 rounded-lg font-medium transition-all ${
-                            currentPage === pageNum
-                              ? "bg-red-600 text-white shadow-md"
-                              : darkMode
-                                ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
-                                : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      ),
+                          <td className="p-3 font-medium">{item.id}</td>
+                          <td className="p-3">{item.product_name}</td>
+                          <td className="p-3">
+                            <span
+                              className={`px-3 py-1 rounded-lg font-bold text-xs ${darkMode ? "bg-[#F87171]/20 text-[#F87171]" : "bg-[#FEE2E2] text-[#B91C1C]"}`}
+                            >
+                              {item.quantity}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 opacity-50" />
+                              {item.date}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 opacity-50" />
+                              {formatTo12Hour(item.time_out)}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {/* Pagination */}
+              {items.length > itemsPerPage && (
+                <div
+                  className={`flex items-center justify-between px-4 py-3 border-t ${darkMode ? "border-[#374151]" : "border-[#E5E7EB]"}`}
+                >
+                  <div
+                    className={`text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                  >
+                    Showing {indexOfFirstItem + 1} to{" "}
+                    {Math.min(indexOfLastItem, items.length)} of {items.length}{" "}
+                    entries
                   </div>
 
-                  {/* Next Button */}
-                  <button
-                    onClick={goToNextPage}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-lg transition-all ${
-                      currentPage === totalPages
-                        ? darkMode
-                          ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
-                          : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
-                        : darkMode
-                          ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
-                          : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
-                    }`}
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Previous Button */}
+                    <button
+                      onClick={goToPrevPage}
+                      disabled={currentPage === 1}
+                      className={`p-2 rounded-lg transition-all ${
+                        currentPage === 1
+                          ? darkMode
+                            ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                            : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
+                          : darkMode
+                            ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                            : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                      }`}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1">
+                      {getPageNumbers().map((pageNum, idx) =>
+                        pageNum === "..." ? (
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className={`px-3 py-2 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                          >
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={pageNum}
+                            onClick={() => paginate(pageNum)}
+                            className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                              currentPage === pageNum
+                                ? "bg-red-600 text-white shadow-md"
+                                : darkMode
+                                  ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                                  : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        ),
+                      )}
+                    </div>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                      className={`p-2 rounded-lg transition-all ${
+                        currentPage === totalPages
+                          ? darkMode
+                            ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                            : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
+                          : darkMode
+                            ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                            : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                      }`}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </AuthGuard>
   );
 }
