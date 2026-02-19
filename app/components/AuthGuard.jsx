@@ -10,7 +10,7 @@ const Loader = () => {
       <div className="loader">
         {Array.from({ length: 9 }).map((_, i) => (
           <div className="text" key={i}>
-            <span>Verifying an account</span>
+            <span>Loading....</span>
           </div>
         ))}
         <div className="line" />

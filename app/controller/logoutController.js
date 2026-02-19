@@ -9,6 +9,4 @@ export const handleLogout = async () => {
     alert("Failed to logout. Try again.");
     return;
   }
-
-  window.location.href = "/";
 };
