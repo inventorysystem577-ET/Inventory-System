@@ -8,11 +8,13 @@ import LoginHeader from "../../components/LoginHeader";
 import LoginForm from "../../components/LoginForm";
 import { handleSubmitLogin } from "../../controller/loginController";
 import { handleFormSubmit } from "../../utils/formHandlers";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState("");
+  const router = useRouter();
 
   const onSubmit = (e) => {
     handleFormSubmit({
@@ -23,7 +25,7 @@ export default function LoginPage() {
       onSuccess: async (response) => {
         console.log("Logged in user:", response.user);
         alert("Login Successful!");
-        window.location.href = "/view/dashboard";
+        router.push("/view/dashboard");
       },
       onError: (error) => {
         console.error("Login error:", error.message);
