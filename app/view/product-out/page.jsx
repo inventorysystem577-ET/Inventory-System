@@ -18,9 +18,9 @@ import {
   handleAddProductOut,
 } from "../../controller/productController";
 import AuthGuard from "../../components/AuthGuard";
+
 export default function ProductOutPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("product-out");
   const [darkMode, setDarkMode] = useState(false);
 
   const [items, setItems] = useState([]);
@@ -33,7 +33,6 @@ export default function ProductOutPage() {
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
@@ -45,7 +44,6 @@ export default function ProductOutPage() {
     let hour = now.getHours();
     const minute = now.getMinutes();
     const ampm = hour >= 12 ? "PM" : "AM";
-
     hour = hour % 12;
     hour = hour ? hour : 12;
     const formattedMinute = minute < 10 ? `0${minute}` : `${minute}`;
@@ -54,10 +52,8 @@ export default function ProductOutPage() {
     setTimeMinute(formattedMinute);
     setTimeAMPM(ampm);
 
-    // Set today's date as default
-    const today = new Date();
-    const formattedDate = today.toISOString().split("T")[0];
-    setDate(formattedDate);
+    const today = new Date().toISOString().split("T")[0];
+    setDate(today);
 
     loadItems();
     loadAvailableProducts();
@@ -65,28 +61,23 @@ export default function ProductOutPage() {
 
   const loadItems = async () => {
     const data = await fetchProductOutController();
-    const sortedData = data.sort((a, b) => b.id - a.id);
-    setItems(sortedData);
+    setItems(data.sort((a, b) => b.id - a.id));
   };
 
   const loadAvailableProducts = async () => {
     const data = await fetchProductInController();
-    // Filter only products with quantity > 0
-    const productsWithStock = data.filter((product) => product.quantity > 0);
-    setAvailableProducts(productsWithStock);
+    setAvailableProducts(data.filter((product) => product.quantity > 0));
   };
 
   const handleProductSelect = (e) => {
     const selectedProductName = e.target.value;
     setProductName(selectedProductName);
-
-    // Find the selected product and set max quantity
     const selectedProduct = availableProducts.find(
       (p) => p.product_name === selectedProductName,
     );
     if (selectedProduct) {
       setMaxQuantity(selectedProduct.quantity);
-      setQuantity(1); // Reset quantity to 1
+      setQuantity(1);
     } else {
       setMaxQuantity(0);
       setQuantity(1);
@@ -95,19 +86,15 @@ export default function ProductOutPage() {
 
   const handleAddItem = async (e) => {
     e.preventDefault();
-
-    // Make sure date is provided
     if (!date) {
       alert("Please select a date");
       return;
     }
-
     if (!productName) {
       alert("Please select a product");
       return;
     }
 
-    // Format time to 24-hour format
     let hour = parseInt(timeHour);
     if (timeAMPM === "PM" && hour !== 12) hour += 12;
     if (timeAMPM === "AM" && hour === 12) hour = 0;
@@ -125,7 +112,6 @@ export default function ProductOutPage() {
       setQuantity(1);
       setMaxQuantity(0);
 
-      // Reset to current date and time
       const now = new Date();
       const today = now.toISOString().split("T")[0];
       setDate(today);
@@ -133,7 +119,6 @@ export default function ProductOutPage() {
       let currentHour = now.getHours();
       const currentMinute = now.getMinutes();
       const ampm = currentHour >= 12 ? "PM" : "AM";
-
       currentHour = currentHour % 12;
       currentHour = currentHour ? currentHour : 12;
       const formattedMinute =
@@ -144,24 +129,21 @@ export default function ProductOutPage() {
       setTimeAMPM(ampm);
 
       loadItems();
-      loadAvailableProducts(); // Reload available products to update stock
+      loadAvailableProducts();
     }
   };
 
   const formatTo12Hour = (time) => {
     if (!time) return "";
     if (time.includes("AM") || time.includes("PM")) return time;
-
     const [hourStr, minute] = time.split(":");
     let hour = parseInt(hourStr);
     const ampm = hour >= 12 ? "PM" : "AM";
     hour = hour % 12;
     hour = hour ? hour : 12;
-
     return `${hour}:${minute} ${ampm}`;
   };
 
-  // Pagination calculations
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = items.slice(indexOfFirstItem, indexOfLastItem);
@@ -178,7 +160,6 @@ export default function ProductOutPage() {
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
-
     if (totalPages <= maxPagesToShow) {
       for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
     } else {
@@ -199,22 +180,23 @@ export default function ProductOutPage() {
         pageNumbers.push(totalPages);
       }
     }
-
     return pageNumbers;
   };
 
   return (
     <AuthGuard darkMode={darkMode}>
       <div
-        className={
-          darkMode
-            ? "dark min-h-screen bg-[#0B0B0B] text-white"
-            : "min-h-screen bg-[#F9FAFB] text-black"
-        }
+        className={`flex flex-col w-full h-screen overflow-hidden ${
+          darkMode ? "dark bg-[#0B0B0B] text-white" : "bg-[#F9FAFB] text-black"
+        }`}
       >
         {/* Navbar */}
         <div
-          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b shadow-sm ${darkMode ? "bg-[#111827]/90 border-[#374151]" : "bg-white/90 border-[#E5E7EB]"}`}
+          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b shadow-sm ${
+            darkMode
+              ? "bg-[#111827]/90 border-[#374151]"
+              : "bg-white/90 border-[#E5E7EB]"
+          }`}
         >
           <TopNavbar
             sidebarOpen={sidebarOpen}
@@ -227,15 +209,15 @@ export default function ProductOutPage() {
         {/* Sidebar */}
         <Sidebar
           sidebarOpen={sidebarOpen}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           setSidebarOpen={setSidebarOpen}
           darkMode={darkMode}
         />
 
         {/* Main */}
         <main
-          className={`pt-20 transition-all duration-300 ${sidebarOpen ? "lg:ml-64" : ""}`}
+          className={`flex-1 overflow-y-auto pt-20 transition-all duration-300 ${
+            sidebarOpen ? "lg:ml-64" : ""
+          } ${darkMode ? "bg-[#0B0B0B]" : "bg-[#F9FAFB]"}`}
         >
           <div className="max-w-[1200px] mx-auto px-6 py-8">
             {/* Header */}
@@ -266,7 +248,11 @@ export default function ProductOutPage() {
             {/* Form */}
             <form
               onSubmit={handleAddItem}
-              className={`p-6 rounded-xl shadow-lg mb-8 border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
+              className={`p-6 rounded-xl shadow-lg mb-8 border ${
+                darkMode
+                  ? "bg-[#1F2937] border-[#374151]"
+                  : "bg-white border-[#E5E7EB]"
+              }`}
             >
               <div className="flex items-center gap-2 mb-6">
                 <Plus
@@ -276,6 +262,7 @@ export default function ProductOutPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4">
+                {/* Product Name */}
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
@@ -285,7 +272,11 @@ export default function ProductOutPage() {
                   <select
                     value={productName}
                     onChange={handleProductSelect}
-                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
                     required
                   >
                     <option value="">Select a product</option>
@@ -297,6 +288,7 @@ export default function ProductOutPage() {
                   </select>
                 </div>
 
+                {/* Quantity */}
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
@@ -317,16 +309,19 @@ export default function ProductOutPage() {
                     value={quantity}
                     onChange={(e) => {
                       const value = parseInt(e.target.value);
-                      if (value <= maxQuantity) {
-                        setQuantity(value);
-                      }
+                      if (value <= maxQuantity) setQuantity(value);
                     }}
-                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
                     required
                     disabled={!productName}
                   />
                 </div>
 
+                {/* Date */}
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
@@ -337,11 +332,16 @@ export default function ProductOutPage() {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
                     required
                   />
                 </div>
 
+                {/* Time */}
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
@@ -352,7 +352,11 @@ export default function ProductOutPage() {
                     <select
                       value={timeHour}
                       onChange={(e) => setTimeHour(e.target.value)}
-                      className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                      className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${
+                        darkMode
+                          ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                          : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                      }`}
                     >
                       {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
                         <option key={h} value={h}>
@@ -363,7 +367,11 @@ export default function ProductOutPage() {
                     <select
                       value={timeMinute}
                       onChange={(e) => setTimeMinute(e.target.value)}
-                      className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                      className={`border rounded-lg px-2 py-2 w-full focus:outline-none focus:ring-2 ${
+                        darkMode
+                          ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                          : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                      }`}
                     >
                       {Array.from({ length: 60 }, (_, i) =>
                         i.toString().padStart(2, "0"),
@@ -376,7 +384,11 @@ export default function ProductOutPage() {
                     <select
                       value={timeAMPM}
                       onChange={(e) => setTimeAMPM(e.target.value)}
-                      className={`border rounded-lg px-2 py-2 w-20 focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"}`}
+                      className={`border rounded-lg px-2 py-2 w-20 focus:outline-none focus:ring-2 ${
+                        darkMode
+                          ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                          : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                      }`}
                     >
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
@@ -395,7 +407,6 @@ export default function ProductOutPage() {
                 </button>
               </div>
 
-              {/* No products warning */}
               {availableProducts.length === 0 && (
                 <div
                   className={`mt-4 p-4 rounded-lg ${darkMode ? "bg-yellow-900/20 border border-yellow-800" : "bg-yellow-50 border border-yellow-200"}`}
@@ -412,87 +423,91 @@ export default function ProductOutPage() {
 
             {/* Table */}
             <div
-              className={`rounded-xl shadow-xl overflow-hidden border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
+              className={`rounded-xl shadow-xl overflow-hidden border ${
+                darkMode
+                  ? "bg-[#1F2937] border-[#374151]"
+                  : "bg-white border-[#E5E7EB]"
+              }`}
             >
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
-                  <thead
-                    className={
-                      darkMode
-                        ? "bg-[#111827] text-[#D1D5DB]"
-                        : "bg-[#F9FAFB] text-[#374151]"
-                    }
-                  >
+              <table className="w-full">
+                <thead
+                  className={
+                    darkMode
+                      ? "bg-[#111827] text-[#D1D5DB]"
+                      : "bg-[#F9FAFB] text-[#374151]"
+                  }
+                >
+                  <tr>
+                    {["Product", "Quantity", "Date", "Time Out"].map((head) => (
+                      <th
+                        key={head}
+                        className="p-3 text-left text-xs font-semibold uppercase tracking-wider"
+                      >
+                        {head}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody
+                  className={darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}
+                >
+                  {currentItems.length === 0 ? (
                     <tr>
-                      {["ID", "Product", "Quantity", "Date", "Time Out"].map(
-                        (head) => (
-                          <th
-                            key={head}
-                            className="p-3 text-left text-xs font-semibold uppercase tracking-wider"
-                          >
-                            {head}
-                          </th>
-                        ),
-                      )}
+                      <td
+                        colSpan="4"
+                        className={`text-center p-8 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                      >
+                        <PackageCheck
+                          className={`w-12 h-12 mx-auto mb-3 ${darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"}`}
+                        />
+                        <p className="text-base font-medium">
+                          No products out yet
+                        </p>
+                        <p className="text-xs opacity-75">
+                          Add your first product using the form above
+                        </p>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody
-                    className={
-                      darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
-                    }
-                  >
-                    {currentItems.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan="5"
-                          className={`text-center p-8 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
-                        >
-                          <PackageCheck
-                            className={`w-12 h-12 mx-auto mb-3 ${darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"}`}
-                          />
-                          <p className="text-base font-medium">
-                            No products out yet
-                          </p>
-                          <p className="text-xs opacity-75">
-                            Add your first product using the form above
-                          </p>
+                  ) : (
+                    currentItems.map((item) => (
+                      <tr
+                        key={item.id}
+                        className={`border-t ${
+                          darkMode
+                            ? "border-[#374151] hover:bg-[#374151]/40"
+                            : "border-[#E5E7EB] hover:bg-[#F3F4F6]"
+                        } transition-colors`}
+                      >
+                        <td className="p-3 font-medium">{item.product_name}</td>
+                        <td className="p-3">
+                          <span
+                            className={`px-3 py-1 rounded-lg font-bold text-xs ${
+                              darkMode
+                                ? "bg-[#F87171]/20 text-[#F87171]"
+                                : "bg-[#FEE2E2] text-[#B91C1C]"
+                            }`}
+                          >
+                            {item.quantity}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 opacity-50" />
+                            {item.date}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 opacity-50" />
+                            {formatTo12Hour(item.time_out)}
+                          </div>
                         </td>
                       </tr>
-                    ) : (
-                      currentItems.map((item) => (
-                        <tr
-                          key={item.id}
-                          className={`border-t ${darkMode ? "border-[#374151] hover:bg-[#374151]/40" : "border-[#E5E7EB] hover:bg-[#F3F4F6]"} transition-colors`}
-                        >
-                          <td className="p-3 font-medium">{item.id}</td>
-                          <td className="p-3">{item.product_name}</td>
-                          <td className="p-3">
-                            <span
-                              className={`px-3 py-1 rounded-lg font-bold text-xs ${darkMode ? "bg-[#F87171]/20 text-[#F87171]" : "bg-[#FEE2E2] text-[#B91C1C]"}`}
-                            >
-                              {item.quantity}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 opacity-50" />
-                              {item.date}
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4 opacity-50" />
-                              {formatTo12Hour(item.time_out)}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
 
-              {/* Pagination */}
               {/* Pagination */}
               {items.length > itemsPerPage && (
                 <div
@@ -507,7 +522,6 @@ export default function ProductOutPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* Previous Button */}
                     <button
                       onClick={goToPrevPage}
                       disabled={currentPage === 1}
@@ -524,7 +538,6 @@ export default function ProductOutPage() {
                       <ChevronLeft className="w-5 h-5" />
                     </button>
 
-                    {/* Page Numbers */}
                     <div className="flex items-center gap-1">
                       {getPageNumbers().map((pageNum, idx) =>
                         pageNum === "..." ? (
@@ -552,7 +565,6 @@ export default function ProductOutPage() {
                       )}
                     </div>
 
-                    {/* Next Button */}
                     <button
                       onClick={goToNextPage}
                       disabled={currentPage === totalPages}
