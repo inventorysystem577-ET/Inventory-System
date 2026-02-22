@@ -4,22 +4,16 @@ import {
   Package,
   PackageOpen,
   Activity,
-  Users,
   LogOut,
   ArrowDownToLine,
   ArrowUpFromLine,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { handleLogout } from "../controller/logoutController";
 
-export default function Sidebar({
-  sidebarOpen,
-  activeTab,
-  setActiveTab,
-  setSidebarOpen,
-  darkMode,
-}) {
+export default function Sidebar({ sidebarOpen, setSidebarOpen, darkMode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const menuItems = [
     {
@@ -60,13 +54,8 @@ export default function Sidebar({
     },
   ];
 
-  const handleMenuClick = (id, path) => {
-    setActiveTab(id);
-
-    // Navigate to the page
+  const handleMenuClick = (path) => {
     router.push(path);
-
-    // Close sidebar on mobile after clicking
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
@@ -75,7 +64,6 @@ export default function Sidebar({
   const handleLogoutClick = async () => {
     try {
       await handleLogout();
-      // Navigate to home page after successful logout
       router.push("/");
     } catch (err) {
       alert(err.message || "Logout failed");
@@ -103,26 +91,37 @@ export default function Sidebar({
         }`}
       >
         {sidebarOpen && (
-          <nav className="p-4 sm:p-5 lg:p-4 space-y-2 h-full overflow-y-auto pb-20">
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleMenuClick(item.id, item.path)}
-                className={`w-full flex items-center space-x-3 sm:space-x-4 lg:space-x-3 px-4 sm:px-5 lg:px-4 py-3 sm:py-3.5 lg:py-3 rounded-lg transition-all text-base sm:text-lg lg:text-base ${
-                  activeTab === item.id
-                    ? "bg-[#1E3A8A] text-white shadow-lg shadow-blue-500/30"
-                    : darkMode
-                      ? "text-[#D1D5DB] hover:bg-[#1F2937]"
-                      : "text-[#374151] hover:bg-white"
-                }`}
-              >
-                <item.icon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-5 lg:h-5 flex-shrink-0" />
-                <span className="font-medium whitespace-nowrap">
-                  {item.label}
-                </span>
-              </button>
-            ))}
+          <nav className="p-4 sm:p-5 lg:p-4 space-y-1 h-full overflow-y-auto pb-20">
+            {menuItems.map((item) => {
+              const isActive = pathname === item.path;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMenuClick(item.path)}
+                  className={`relative w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 text-base font-medium group ${
+                    isActive
+                      ? "bg-[#1E40AF] text-white shadow-lg shadow-blue-700/30"
+                      : darkMode
+                        ? "text-[#D1D5DB] hover:bg-[#1E40AF] hover:text-white"
+                        : "text-[#374151] hover:bg-[#1E40AF] hover:text-white"
+                  }`}
+                >
+                  {/* Left accent bar */}
+                  <span
+                    className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full transition-all duration-200 ${
+                      isActive
+                        ? "bg-white/70"
+                        : "bg-transparent group-hover:bg-white/40"
+                    }`}
+                  />
 
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="whitespace-nowrap">{item.label}</span>
+                </button>
+              );
+            })}
+
+            {/* Logout */}
             <div
               className={`pt-4 mt-4 border-t ${
                 darkMode ? "border-[#374151]" : "border-[#D1D5DB]"
@@ -130,14 +129,14 @@ export default function Sidebar({
             >
               <button
                 onClick={handleLogoutClick}
-                className={`w-full flex items-center space-x-3 sm:space-x-4 lg:space-x-3 px-4 sm:px-5 lg:px-4 py-3 sm:py-3.5 lg:py-3 rounded-lg transition-all text-base sm:text-lg lg:text-base cursor-pointer ${
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 text-base font-medium ${
                   darkMode
-                    ? "text-[#EF4444] hover:bg-[#1F2937]"
-                    : "text-[#DC2626] hover:bg-white"
+                    ? "text-[#EF4444] hover:bg-[#7F1D1D]/40 hover:text-red-300"
+                    : "text-[#DC2626] hover:bg-red-50 hover:text-red-700"
                 }`}
               >
-                <LogOut className="w-5 h-5 sm:w-6 sm:h-6 lg:w-5 lg:h-5 flex-shrink-0" />
-                <span className="font-medium">Logout</span>
+                <LogOut className="w-5 h-5 flex-shrink-0" />
+                <span>Logout</span>
               </button>
             </div>
           </nav>

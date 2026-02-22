@@ -15,29 +15,25 @@ import { fetchParcelItems } from "../../utils/parcelShippedHelper";
 
 export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("parcel-out");
   const [darkMode, setDarkMode] = useState(false);
 
-  const [items, setItems] = useState([]); // parcel-out items
-  const [availableItems, setAvailableItems] = useState([]); // parcel-in items
-  const [selectedItemId, setSelectedItemId] = useState(""); // initially empty for "Please select"
+  const [items, setItems] = useState([]);
+  const [availableItems, setAvailableItems] = useState([]);
+  const [selectedItemId, setSelectedItemId] = useState("");
   const [date, setDate] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [timeHour, setTimeHour] = useState("1");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
+  const [selectedFilter, setSelectedFilter] = useState("");
 
-  const [selectedFilter, setSelectedFilter] = useState(""); // for table filter
-
-  // Get selected item details
   const selectedItem = availableItems.find(
     (item) => item.name === selectedItemId,
   );
   const availableStock = selectedItem?.quantity || 0;
-  const maxQuantity = availableStock; // ✅ Pwede na i-out lahat hanggang 0
-  const canAddParcelOut = availableStock > 0; // ✅ Basta may stock, pwede mag-out
+  const maxQuantity = availableStock;
+  const canAddParcelOut = availableStock > 0;
 
-  // Load dark mode and fetch items on mount
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
     if (savedDarkMode !== null) setDarkMode(savedDarkMode === "true");
@@ -45,7 +41,6 @@ export default function Page() {
     const loadItems = async () => {
       const outItems = await fetchParcelOutItems();
       setItems(outItems);
-
       const inItems = await fetchParcelItems();
       setAvailableItems(inItems);
     };
@@ -54,11 +49,8 @@ export default function Page() {
     let hour = now.getHours();
     const minute = now.getMinutes();
     const ampm = hour >= 12 ? "PM" : "AM";
-
-    // convert to 12-hour format
     hour = hour % 12;
-    hour = hour ? hour : 12; // 0 becomes 12
-
+    hour = hour ? hour : 12;
     const formattedMinute = minute < 10 ? `0${minute}` : `${minute}`;
 
     setTimeHour(hour.toString());
@@ -69,17 +61,12 @@ export default function Page() {
 
   const formatTo12Hour = (time) => {
     if (!time) return "";
-
-    // if may AM/PM na wag na galawin
     if (time.includes("AM") || time.includes("PM")) return time;
-
     const [hourStr, minute] = time.split(":");
     let hour = parseInt(hourStr);
-
     const ampm = hour >= 12 ? "PM" : "AM";
     hour = hour % 12;
     hour = hour ? hour : 12;
-
     return `${hour}:${minute} ${ampm}`;
   };
 
@@ -98,7 +85,6 @@ export default function Page() {
 
     if (!result || !result.newItem) return;
 
-    // Update UI from returned lists
     setItems(result.updatedOut || []);
     setAvailableItems(result.updatedIn || []);
 
@@ -108,7 +94,6 @@ export default function Page() {
         `Quantity Out: ${quantity} units`,
     );
 
-    // Reset form
     setSelectedItemId("");
     setDate("");
     setQuantity(1);
@@ -117,14 +102,16 @@ export default function Page() {
     setTimeAMPM("AM");
   };
 
+  const filteredItems = selectedFilter
+    ? items.filter((item) => item.name === selectedFilter)
+    : items;
+
   return (
     <AuthGuard darkMode={darkMode}>
       <div
-        className={
-          darkMode
-            ? "dark min-h-screen bg-[#0B0B0B] text-white"
-            : "min-h-screen bg-[#F9FAFB] text-black"
-        }
+        className={`flex flex-col w-full h-screen overflow-hidden ${
+          darkMode ? "dark bg-[#0B0B0B] text-white" : "bg-[#F9FAFB] text-black"
+        }`}
       >
         {/* Top Navbar */}
         <div
@@ -145,17 +132,15 @@ export default function Page() {
         {/* Sidebar */}
         <Sidebar
           sidebarOpen={sidebarOpen}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           setSidebarOpen={setSidebarOpen}
           darkMode={darkMode}
         />
 
         {/* Main Content */}
         <main
-          className={`pt-20 transition-all duration-300 ease-in-out ${
+          className={`flex-1 overflow-y-auto pt-20 transition-all duration-300 ease-in-out ${
             sidebarOpen ? "lg:ml-64" : "lg:ml-0"
-          }`}
+          } ${darkMode ? "bg-[#0B0B0B]" : "bg-[#F9FAFB]"}`}
         >
           <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
             {/* Header */}
@@ -183,7 +168,9 @@ export default function Page() {
                 ></div>
               </div>
               <p
-                className={`text-center text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                className={`text-center text-sm ${
+                  darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                }`}
               >
                 Record items going out of your inventory
               </p>
@@ -200,7 +187,9 @@ export default function Page() {
             >
               <div className="flex items-center gap-2 mb-5">
                 <Plus
-                  className={`w-5 h-5 ${darkMode ? "text-[#F97316]" : "text-[#EA580C]"}`}
+                  className={`w-5 h-5 ${
+                    darkMode ? "text-[#F97316]" : "text-[#EA580C]"
+                  }`}
                 />
                 <h2
                   className={`text-lg font-semibold ${
@@ -212,7 +201,7 @@ export default function Page() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                {/* Item Name Dropdown */}
+                {/* Item Name */}
                 <div className="flex flex-col">
                   <label
                     className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
@@ -225,7 +214,7 @@ export default function Page() {
                     value={selectedItemId}
                     onChange={(e) => {
                       setSelectedItemId(e.target.value);
-                      setQuantity(1); // Reset quantity when item changes
+                      setQuantity(1);
                     }}
                     className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                       darkMode
@@ -364,7 +353,7 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Submit */}
               <div className="flex justify-end mt-6">
                 <button
                   type="submit"
@@ -380,7 +369,7 @@ export default function Page() {
               </div>
             </form>
 
-            {/* Filter Dropdown */}
+            {/* Filter */}
             <div className="flex items-center gap-2 mb-4">
               <label
                 className={`text-sm font-medium ${
@@ -407,120 +396,116 @@ export default function Page() {
               </select>
             </div>
 
-            {/* Items Table */}
+            {/* Table */}
             <div
-              className={`rounded-xl shadow-lg overflow-x-auto overflow-y-auto border animate__animated animate__fadeInRight max-h-[600px] ${
+              className={`rounded-xl shadow-lg overflow-hidden border animate__animated animate__fadeInRight ${
                 darkMode
                   ? "bg-[#1F2937] border-[#374151]"
                   : "bg-white border-[#E5E7EB]"
               }`}
             >
-              <table className="min-w-full w-full">
-                <thead
-                  className={`sticky top-0 z-10 ${
-                    darkMode
-                      ? "bg-[#111827] border-b border-[#374151]"
-                      : "bg-[#F9FAFB] border-b border-[#E5E7EB]"
-                  }`}
-                >
-                  <tr>
-                    {["Item Name", "Date", "Quantity", "Time Out"].map(
-                      (head) => (
-                        <th
-                          key={head}
-                          className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap ${
-                            darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                          }`}
-                        >
-                          {head}
-                        </th>
-                      ),
-                    )}
-                  </tr>
-                </thead>
-                <tbody
-                  className={`divide-y ${
-                    darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
-                  }`}
-                >
-                  {(selectedFilter
-                    ? items.filter((item) => item.name === selectedFilter)
-                    : items
-                  ).length === 0 ? (
+              <div className="overflow-y-auto max-h-[600px]">
+                <table className="w-full">
+                  <thead
+                    className={`sticky top-0 z-10 ${
+                      darkMode
+                        ? "bg-[#111827] border-b border-[#374151]"
+                        : "bg-[#F9FAFB] border-b border-[#E5E7EB]"
+                    }`}
+                  >
                     <tr>
-                      <td
-                        colSpan={4}
-                        className={`px-4 sm:px-6 py-12 sm:py-16 text-center ${
-                          darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
-                        }`}
-                      >
-                        <PackageOpen
-                          className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__bounce animate__infinite animate__slow ${
-                            darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
-                          }`}
-                        />
-                        <p className="text-base sm:text-lg font-medium mb-1">
-                          No items added yet
-                        </p>
-                        <p className="text-xs sm:text-sm opacity-75">
-                          Add your first item using the form above
-                        </p>
-                      </td>
-                    </tr>
-                  ) : (
-                    (selectedFilter
-                      ? items.filter((item) => item.name === selectedFilter)
-                      : items
-                    ).map((item, index) => (
-                      <tr
-                        key={item.id}
-                        className={`transition-all duration-200 animate__animated animate__fadeInUp ${
-                          darkMode
-                            ? "hover:bg-[#374151]/40"
-                            : "hover:bg-[#F3F4F6]"
-                        }`}
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        <td
-                          className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap font-semibold text-sm sm:text-base ${
-                            darkMode ? "text-[#FFFFFF]" : "text-[#111827]"
-                          }`}
-                        >
-                          {item.name}
-                        </td>
-                        <td
-                          className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
-                            darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                          }`}
-                        >
-                          {item.date}
-                        </td>
-                        <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold ${
-                              darkMode
-                                ? "bg-[#F97316]/20 text-[#F97316] border border-[#F97316]/30"
-                                : "bg-[#FFEDD5] text-[#EA580C] border border-[#FED7AA]"
+                      {["Item Name", "Date", "Quantity", "Time Out"].map(
+                        (head) => (
+                          <th
+                            key={head}
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap ${
+                              darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                             }`}
                           >
-                            {item.quantity} units
-                          </span>
-                        </td>
+                            {head}
+                          </th>
+                        ),
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody
+                    className={`divide-y ${
+                      darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"
+                    }`}
+                  >
+                    {filteredItems.length === 0 ? (
+                      <tr>
                         <td
-                          className={`px-3 sm:px-4 md:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
-                            darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                          colSpan={4}
+                          className={`px-4 sm:px-6 py-12 sm:py-16 text-center ${
+                            darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-50" />
-                            {formatTo12Hour(item.timeOut)}
-                          </div>
+                          <PackageOpen
+                            className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__bounce animate__infinite animate__slow ${
+                              darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
+                            }`}
+                          />
+                          <p className="text-base sm:text-lg font-medium mb-1">
+                            No items added yet
+                          </p>
+                          <p className="text-xs sm:text-sm opacity-75">
+                            Add your first item using the form above
+                          </p>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      filteredItems.map((item, index) => (
+                        <tr
+                          key={item.id}
+                          className={`transition-all duration-200 animate__animated animate__fadeInUp ${
+                            darkMode
+                              ? "hover:bg-[#374151]/40"
+                              : "hover:bg-[#F3F4F6]"
+                          }`}
+                          style={{ animationDelay: `${index * 0.1}s` }}
+                        >
+                          <td
+                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap font-semibold text-sm sm:text-base ${
+                              darkMode ? "text-white" : "text-[#111827]"
+                            }`}
+                          >
+                            {item.name}
+                          </td>
+                          <td
+                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
+                              darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                            }`}
+                          >
+                            {item.date}
+                          </td>
+                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold ${
+                                darkMode
+                                  ? "bg-[#F97316]/20 text-[#F97316] border border-[#F97316]/30"
+                                  : "bg-[#FFEDD5] text-[#EA580C] border border-[#FED7AA]"
+                              }`}
+                            >
+                              {item.quantity} units
+                            </span>
+                          </td>
+                          <td
+                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
+                              darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-50" />
+                              {formatTo12Hour(item.timeOut)}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </main>

@@ -22,7 +22,6 @@ import AuthGuard from "../../components/AuthGuard";
 
 export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("parcel-in");
   const [darkMode, setDarkMode] = useState(false);
 
   const [items, setItems] = useState([]);
@@ -33,7 +32,6 @@ export default function Page() {
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
 
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
@@ -45,11 +43,8 @@ export default function Page() {
     let hour = now.getHours();
     const minute = now.getMinutes();
     const ampm = hour >= 12 ? "PM" : "AM";
-
-    // convert to 12-hour format
     hour = hour % 12;
-    hour = hour ? hour : 12; // 0 becomes 12
-
+    hour = hour ? hour : 12;
     const formattedMinute = minute < 10 ? `0${minute}` : `${minute}`;
 
     setTimeHour(hour.toString());
@@ -60,8 +55,6 @@ export default function Page() {
 
   const loadItems = async () => {
     const data = await fetchParcelItems();
-
-    // Sort by quantity ascending (smallest first)
     const sortedData = data
       .filter((item) => item.quantity > 0)
       .sort((a, b) => b.quantity - a.quantity);
@@ -70,17 +63,12 @@ export default function Page() {
 
   const formatTo12Hour = (time) => {
     if (!time) return "";
-
-    // if may AM/PM na wag na galawin
     if (time.includes("AM") || time.includes("PM")) return time;
-
     const [hourStr, minute] = time.split(":");
     let hour = parseInt(hourStr);
-
     const ampm = hour >= 12 ? "PM" : "AM";
     hour = hour % 12;
     hour = hour ? hour : 12;
-
     return `${hour}:${minute} ${ampm}`;
   };
 
@@ -96,7 +84,6 @@ export default function Page() {
     });
     if (!result || !result.newItem) return;
 
-    // Update UI from refreshed list
     setItems(
       result.items
         .filter((item) => item.quantity > 0)
@@ -111,50 +98,39 @@ export default function Page() {
     setTimeAMPM("AM");
   };
 
-  // Pagination calculations
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = items.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(items.length / itemsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const goToPrevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
 
-  // Generate page numbers to display
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
 
     if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
     } else {
       if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pageNumbers.push(i);
-        }
+        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       } else if (currentPage >= totalPages - 2) {
         pageNumbers.push(1);
         pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          pageNumbers.push(i);
-        }
+        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
       } else {
         pageNumbers.push(1);
         pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        for (let i = currentPage - 1; i <= currentPage + 1; i++)
           pageNumbers.push(i);
-        }
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       }
@@ -166,11 +142,9 @@ export default function Page() {
   return (
     <AuthGuard darkMode={darkMode}>
       <div
-        className={
-          darkMode
-            ? "dark min-h-screen bg-[#0B0B0B] text-white"
-            : "min-h-screen bg-[#F9FAFB] text-black"
-        }
+        className={`flex flex-col w-full h-screen overflow-hidden ${
+          darkMode ? "dark bg-[#0B0B0B] text-white" : "bg-[#F9FAFB] text-black"
+        }`}
       >
         {/* Navbar */}
         <div
@@ -191,17 +165,15 @@ export default function Page() {
         {/* Sidebar */}
         <Sidebar
           sidebarOpen={sidebarOpen}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           setSidebarOpen={setSidebarOpen}
           darkMode={darkMode}
         />
 
         {/* Main */}
         <main
-          className={`pt-20 transition-all duration-300 ${
+          className={`flex-1 overflow-y-auto pt-20 transition-all duration-300 ${
             sidebarOpen ? "lg:ml-64" : ""
-          }`}
+          } ${darkMode ? "bg-[#0B0B0B]" : "bg-[#F9FAFB]"}`}
         >
           <div className="max-w-[1200px] mx-auto px-6 py-8">
             {/* Header */}
@@ -227,7 +199,9 @@ export default function Page() {
                 ></div>
               </div>
               <p
-                className={`text-center text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
+                className={`text-center text-sm ${
+                  darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                }`}
               >
                 Record new items delivered to your inventory
               </p>
@@ -248,7 +222,7 @@ export default function Page() {
                     darkMode ? "text-[#3B82F6]" : "text-[#1E3A8A]"
                   }`}
                 />
-                <h2 className={`text-lg font-semibold`}>Add New Item</h2>
+                <h2 className="text-lg font-semibold">Add New Item</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
@@ -379,7 +353,6 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Submit */}
               <div className="flex justify-end mt-6">
                 <button
                   type="submit"
@@ -453,7 +426,7 @@ export default function Page() {
                           } animate__animated animate__fadeIn`}
                         >
                           <PackageCheck
-                            className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__fadeIn ${
+                            className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 ${
                               darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
                             }`}
                           />
@@ -495,7 +468,7 @@ export default function Page() {
                           </td>
                           <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <Clock size={14} className="sm:w-4 sm:h-4" />{" "}
+                              <Clock size={14} />
                               {formatTo12Hour(item.timeIn)}
                             </div>
                           </td>
@@ -513,18 +486,17 @@ export default function Page() {
                     darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
-                    >
-                      Showing {indexOfFirstItem + 1} to{" "}
-                      {Math.min(indexOfLastItem, items.length)} of{" "}
-                      {items.length} entries
-                    </span>
-                  </div>
+                  <span
+                    className={`text-sm ${
+                      darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                    }`}
+                  >
+                    Showing {indexOfFirstItem + 1} to{" "}
+                    {Math.min(indexOfLastItem, items.length)} of {items.length}{" "}
+                    entries
+                  </span>
 
                   <div className="flex items-center gap-2">
-                    {/* Previous Button */}
                     <button
                       onClick={goToPrevPage}
                       disabled={currentPage === 1}
@@ -541,7 +513,6 @@ export default function Page() {
                       <ChevronLeft className="w-5 h-5" />
                     </button>
 
-                    {/* Page Numbers */}
                     <div className="flex items-center gap-1">
                       {getPageNumbers().map((pageNum, idx) =>
                         pageNum === "..." ? (
@@ -559,7 +530,7 @@ export default function Page() {
                             onClick={() => paginate(pageNum)}
                             className={`px-3 py-2 rounded-lg font-medium transition-all ${
                               currentPage === pageNum
-                                ? "bg-[#1E3A8A] text-white shadow-md"
+                                ? "bg-[#1E40AF] text-white shadow-md"
                                 : darkMode
                                   ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
                                   : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
@@ -571,7 +542,6 @@ export default function Page() {
                       )}
                     </div>
 
-                    {/* Next Button */}
                     <button
                       onClick={goToNextPage}
                       disabled={currentPage === totalPages}
