@@ -48,15 +48,17 @@ export default function WelcomeIcon() {
           />
 
           {/* Logo with subtle corner radius */}
-          <div className="relative w-full aspect-square">
-            <Image
-              src="/logo3.gif"
-              alt="Company logo"
-              fill
-              sizes="(min-width: 1024px) 400px, (min-width: 768px) 320px, 200px"
-              priority
-              className="relative object-contain opacity-95 rounded-[50px] mix-blend-lighten"
-            />
+          <div>
+            <div className="relative w-full aspect-square">
+              <Image
+                src="/logo3.gif"
+                alt="Company logo"
+                fill
+                sizes="(min-width: 1024px) 400px, (min-width: 768px) 320px, 200px"
+                priority
+                className="relative object-contain opacity-95 rounded-[50px] mix-blend-lighten"
+              />
+            </div>
           </div>
         </div>
 
