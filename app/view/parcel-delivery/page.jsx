@@ -25,6 +25,9 @@ export default function Page() {
   const [timeHour, setTimeHour] = useState("1");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
+  const [shippingMode, setShippingMode] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [price, setPrice] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("");
 
   const selectedItem = availableItems.find(
@@ -81,6 +84,9 @@ export default function Page() {
       timeHour,
       timeMinute,
       timeAMPM,
+      shipping_mode: shippingMode,
+      client_name: clientName,
+      price,
     });
 
     if (!result || !result.newItem) return;
@@ -100,6 +106,9 @@ export default function Page() {
     setTimeHour("1");
     setTimeMinute("00");
     setTimeAMPM("AM");
+    setShippingMode("");
+    setClientName("");
+    setPrice("");
   };
 
   const filteredItems = selectedFilter
@@ -353,6 +362,71 @@ export default function Page() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="flex flex-col">
+                  <label
+                    className={`text-sm font-medium mb-2 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    Shipping Mode
+                  </label>
+                  <input
+                    type="text"
+                    value={shippingMode}
+                    onChange={(e) => setShippingMode(e.target.value)}
+                    placeholder="Shopee (J&T)"
+                    className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#F97316] focus:border-[#F97316] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#EA580C] focus:border-[#EA580C] bg-white text-black"
+                    }`}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label
+                    className={`text-sm font-medium mb-2 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    Client Name
+                  </label>
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Client name"
+                    className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#F97316] focus:border-[#F97316] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#EA580C] focus:border-[#EA580C] bg-white text-black"
+                    }`}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label
+                    className={`text-sm font-medium mb-2 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className={`border rounded-lg px-3 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#F97316] focus:border-[#F97316] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#EA580C] focus:border-[#EA580C] bg-white text-black"
+                    }`}
+                  />
+                </div>
+              </div>
+
               {/* Submit */}
               <div className="flex justify-end mt-6">
                 <button
@@ -398,14 +472,14 @@ export default function Page() {
 
             {/* Table */}
             <div
-              className={`rounded-xl shadow-lg overflow-hidden border animate__animated animate__fadeInRight ${
+              className={`rounded-xl shadow-lg overflow-hidden border animate__animated animate__fadeInDown ${
                 darkMode
                   ? "bg-[#1F2937] border-[#374151]"
                   : "bg-white border-[#E5E7EB]"
               }`}
             >
-              <div className="overflow-y-auto max-h-[600px]">
-                <table className="w-full">
+              <div className="overflow-y-auto overflow-x-auto max-h-[600px]">
+                <table className="w-full min-w-[1050px]">
                   <thead
                     className={`sticky top-0 z-10 ${
                       darkMode
@@ -414,7 +488,15 @@ export default function Page() {
                     }`}
                   >
                     <tr>
-                      {["Item Name", "Date", "Quantity", "Time Out"].map(
+                      {[
+                        "Item Name",
+                        "Date",
+                        "Quantity",
+                        "Time Out",
+                        "Shipping",
+                        "Client",
+                        "Price",
+                      ].map(
                         (head) => (
                           <th
                             key={head}
@@ -436,7 +518,7 @@ export default function Page() {
                     {filteredItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={7}
                           className={`px-4 sm:px-6 py-12 sm:py-16 text-center ${
                             darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                           }`}
@@ -499,6 +581,29 @@ export default function Page() {
                               <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-50" />
                               {formatTo12Hour(item.timeOut)}
                             </div>
+                          </td>
+                          <td
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base ${
+                              darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                            }`}
+                          >
+                            {item.shipping_mode || "-"}
+                          </td>
+                          <td
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base ${
+                              darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                            }`}
+                          >
+                            {item.client_name || "-"}
+                          </td>
+                          <td
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base ${
+                              darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                            }`}
+                          >
+                            {item.price !== null && item.price !== undefined
+                              ? Number(item.price).toFixed(2)
+                              : "-"}
                           </td>
                         </tr>
                       ))

@@ -11,6 +11,9 @@ export const fetchParcelItems = async () => {
       date: item.date,
       quantity: item.quantity,
       timeIn: item.time_in,
+      shipping_mode: item.shipping_mode,
+      client_name: item.client_name,
+      price: item.price,
     }));
   } catch (err) {
     console.error(err);
@@ -19,13 +22,27 @@ export const fetchParcelItems = async () => {
 };
 
 // Add a new parcel-in item
-export const addParcelItem = async ({ item_name, date, quantity, time_in }) => {
+export const addParcelItem = async ({
+  item_name,
+  date,
+  quantity,
+  time_in,
+  shipping_mode,
+  client_name,
+  price,
+}) => {
   try {
     const res = await axios.post("/api/parcelShipped", {
       item_name,
       date,
       quantity,
       time_in,
+      shipping_mode,
+      client_name,
+      price:
+        price === "" || price === null || price === undefined
+          ? null
+          : Number(price),
     });
     const data = res.data;
     return {
@@ -34,6 +51,9 @@ export const addParcelItem = async ({ item_name, date, quantity, time_in }) => {
       date: data.date,
       quantity: data.quantity,
       timeIn: data.time_in,
+      shipping_mode: data.shipping_mode,
+      client_name: data.client_name,
+      price: data.price,
     };
   } catch (err) {
     console.error(err.response?.data || err.message);
@@ -42,9 +62,27 @@ export const addParcelItem = async ({ item_name, date, quantity, time_in }) => {
 };
 
 // High-level handler moved out of page: accepts form pieces, creates time string and adds item
-export const handleAddParcelIn = async ({ name, date, quantity, timeHour, timeMinute, timeAMPM }) => {
+export const handleAddParcelIn = async ({
+  name,
+  date,
+  quantity,
+  timeHour,
+  timeMinute,
+  timeAMPM,
+  shipping_mode,
+  client_name,
+  price,
+}) => {
   const timeString = `${timeHour}:${timeMinute} ${timeAMPM}`;
-  const newItem = await addParcelItem({ item_name: name, date, quantity: Number(quantity), time_in: timeString });
+  const newItem = await addParcelItem({
+    item_name: name,
+    date,
+    quantity: Number(quantity),
+    time_in: timeString,
+    shipping_mode,
+    client_name,
+    price,
+  });
   if (!newItem) return null;
 
   // Return newly added item and refreshed list

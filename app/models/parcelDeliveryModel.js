@@ -1,6 +1,14 @@
 import { supabase } from "../../lib/supabaseClient";
 
-export const addParcelOutItem = async ({ item_name, date, quantity, time_out }) => {
+export const addParcelOutItem = async ({
+  item_name,
+  date,
+  quantity,
+  time_out,
+  shipping_mode,
+  client_name,
+  price,
+}) => {
   try {
     // Check available stock
     const { data: inItem, error: inError } = await supabase
@@ -16,7 +24,20 @@ export const addParcelOutItem = async ({ item_name, date, quantity, time_out }) 
     // Insert parcel-out
     const { data: outData, error: outError } = await supabase
       .from("parcel_out")
-      .insert([{ item_name, date, quantity: Number(quantity), time_out }])
+      .insert([
+        {
+          item_name,
+          date,
+          quantity: Number(quantity),
+          time_out,
+          shipping_mode: shipping_mode || null,
+          client_name: client_name || null,
+          price:
+            price === "" || price === null || price === undefined
+              ? null
+              : Number(price),
+        },
+      ])
       .select()
       .single();
     if (outError) throw outError;

@@ -5,6 +5,7 @@ import {
   deductProductIn,
   insertProductOut,
   getProductOut,
+  reserveComponentsFromStock,
 } from "../models/productModel";
 
 /* =====================================
@@ -18,15 +19,36 @@ export const handleAddProductIn = async (
   date,
   time_in,
   components,
+  meta = {},
+  options = {},
 ) => {
   if (!product_name || !quantity) {
-    alert("Fill all fields");
-    return;
+    return { success: false, message: "Fill all fields" };
   }
 
   const formattedComponents = Array.isArray(components)
     ? components
     : JSON.parse(components || "[]");
+
+  const stockResult = await reserveComponentsFromStock({
+    components: formattedComponents,
+    date,
+    time_out: time_in,
+    allowAlternatives: Boolean(options.allowAlternatives),
+  });
+
+  if (!stockResult.success) {
+    return {
+      success: false,
+      message: stockResult.message,
+      missingComponents: stockResult.missingComponents || [],
+      alternativeOptions: stockResult.alternativeOptions || [],
+      usedAlternatives: stockResult.usedAlternatives || [],
+      requiresAlternativeApproval: Boolean(
+        stockResult.requiresAlternativeApproval,
+      ),
+    };
+  }
 
   const result = await upsertProductIn({
     product_name,
@@ -34,15 +56,21 @@ export const handleAddProductIn = async (
     date,
     time_in,
     components: formattedComponents,
+    shipping_mode: meta.shipping_mode || null,
+    client_name: meta.client_name || null,
+    price: meta.price,
   });
 
   if (!result) {
-    alert("Error adding/updating product");
-    return;
+    return { success: false, message: "Error adding/updating product" };
   }
 
-  alert("Product IN added/updated!");
-  return result;
+  return {
+    success: true,
+    data: result,
+    usedAlternatives: stockResult.usedAlternatives || [],
+    deductedComponents: stockResult.stockDeductions || [],
+  };
 };
 
 // FETCH PRODUCT IN
@@ -61,6 +89,7 @@ export const handleAddProductOut = async (
   quantity,
   date,
   time_out,
+  meta = {},
 ) => {
   if (!product_name || !quantity) {
     alert("Fill all fields");
@@ -82,6 +111,9 @@ export const handleAddProductOut = async (
     date,
     time_out,
     components: deductResult.deductedComponents,
+    shipping_mode: meta.shipping_mode || null,
+    client_name: meta.client_name || null,
+    price: meta.price,
   });
 
   if (error) {

@@ -14,6 +14,9 @@ export const fetchParcelOutItems = async () => {
       date: item.date,
       quantity: item.quantity,
       timeOut: item.time_out,
+      shipping_mode: item.shipping_mode,
+      client_name: item.client_name,
+      price: item.price,
     }));
   } catch (err) {
     console.error(
@@ -27,7 +30,15 @@ export const fetchParcelOutItems = async () => {
 /**
  * Add a parcel-out item (with stock validation and decrement)
  */
-export const addParcelOutItemHelper = async ({ item_name, date, quantity, time_out }) => {
+export const addParcelOutItemHelper = async ({
+  item_name,
+  date,
+  quantity,
+  time_out,
+  shipping_mode,
+  client_name,
+  price,
+}) => {
   try {
     // Delegate validation and DB updates to server model via API
     const res = await axios.post("/api/parcelDelivery", {
@@ -35,6 +46,12 @@ export const addParcelOutItemHelper = async ({ item_name, date, quantity, time_o
       date,
       quantity: Number(quantity),
       time_out,
+      shipping_mode,
+      client_name,
+      price:
+        price === "" || price === null || price === undefined
+          ? null
+          : Number(price),
     });
 
     // API should return the created parcel_out row
@@ -50,6 +67,9 @@ export const addParcelOutItemHelper = async ({ item_name, date, quantity, time_o
       date: data.date,
       quantity: data.quantity,
       timeOut: data.time_out,
+      shipping_mode: data.shipping_mode,
+      client_name: data.client_name,
+      price: data.price,
     };
   } catch (err) {
     console.error("Error in addParcelOutItemHelper:", err.response?.data || err.message || err);
@@ -59,9 +79,27 @@ export const addParcelOutItemHelper = async ({ item_name, date, quantity, time_o
 };
 
 // High-level handler moved out of page: accepts form pieces, creates time string, adds parcel out, and returns updated lists
-export const handleAddParcelOut = async ({ item_name, date, quantity, timeHour, timeMinute, timeAMPM }) => {
+export const handleAddParcelOut = async ({
+  item_name,
+  date,
+  quantity,
+  timeHour,
+  timeMinute,
+  timeAMPM,
+  shipping_mode,
+  client_name,
+  price,
+}) => {
   const time_out = `${timeHour}:${timeMinute} ${timeAMPM}`;
-  const newItem = await addParcelOutItemHelper({ item_name, date, quantity: Number(quantity), time_out });
+  const newItem = await addParcelOutItemHelper({
+    item_name,
+    date,
+    quantity: Number(quantity),
+    time_out,
+    shipping_mode,
+    client_name,
+    price,
+  });
   if (!newItem) return null;
 
   // Refresh both lists for UI update

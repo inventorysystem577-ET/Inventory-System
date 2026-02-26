@@ -11,72 +11,48 @@ export const useAuth = () => {
   const router = useRouter();
 
   useEffect(() => {
+    let mounted = true;
+
+    const applySession = (session) => {
+      if (!mounted) return;
+
+      if (!session) {
+        setUserEmail(null);
+        setDisplayName(null);
+        setLoading(false);
+        router.replace("/");
+        return;
+      }
+
+      setUserEmail(session.user?.email || null);
+      setDisplayName(session.user?.user_metadata?.display_name || null);
+      setLoading(false);
+    };
+
     const checkAuth = async () => {
       try {
-        // 1️⃣ Get session
         const {
           data: { session },
         } = await supabase.auth.getSession();
-
-        if (!session) {
-          router.push("/"); // Not authenticated → redirect
-          return;
-        }
-
-        setUserEmail(session.user.email);
-
-        // 2️⃣ Fetch user from auth.users to get display_name
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (error) {
-          console.error("Error fetching user:", error.message);
-          setDisplayName(null);
-        } else {
-          // Get display_name from user metadata
-          setDisplayName(user?.user_metadata?.display_name || null);
-        }
-
-        setLoading(false);
+        applySession(session);
       } catch (error) {
         console.error("Error checking session:", error.message);
-        router.push("/"); // fallback
+        applySession(null);
       }
     };
 
     checkAuth();
 
-    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!session) {
-        router.push("/");
-        setUserEmail(null);
-        setDisplayName(null);
-        setLoading(false);
-      } else {
-        setUserEmail(session.user.email);
-
-        // Fetch user to get display_name
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (error) {
-          setDisplayName(null);
-        } else {
-          setDisplayName(user?.user_metadata?.display_name || null);
-        }
-
-        setLoading(false);
-      }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   return { userEmail, displayName, loading };

@@ -10,6 +10,8 @@ import {
   Clock,
   Calendar,
   Package,
+  AlertTriangle,
+  RefreshCw,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -33,6 +35,10 @@ export default function ProductInPage() {
   const [timeHour, setTimeHour] = useState("1");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
+  const [price, setPrice] = useState("");
+  const [errorBar, setErrorBar] = useState("");
+  const [successBar, setSuccessBar] = useState("");
+  const [alternativeRequest, setAlternativeRequest] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -79,14 +85,53 @@ export default function ProductInPage() {
     }));
 
     const time_in = `${timeHour}:${timeMinute} ${timeAMPM}`;
+    setErrorBar("");
+    setSuccessBar("");
+    setAlternativeRequest(null);
 
-    await handleAddProductIn(
+    const result = await handleAddProductIn(
       selectedProduct,
       quantityToAdd,
       date,
       time_in,
       components,
+      {
+        price,
+      },
     );
+
+    if (!result?.success) {
+      if (result?.requiresAlternativeApproval) {
+        setAlternativeRequest({
+          product_name: selectedProduct,
+          quantity: quantityToAdd,
+          date,
+          time_in,
+          components,
+          alternatives: result.alternativeOptions || [],
+        });
+        return;
+      }
+
+      const missingText =
+        result?.missingComponents?.length > 0
+          ? ` Missing: ${result.missingComponents
+              .map((item) => `${item.component} (${item.available}/${item.needed})`)
+              .join(", ")}`
+          : "";
+
+      setErrorBar(`${result?.message || "Unable to add Product In."}${missingText}`);
+      return;
+    }
+
+    const altText =
+      result.usedAlternatives?.length > 0
+        ? ` Used alternatives: ${result.usedAlternatives
+            .map((item) => `${item.alternative} for ${item.forComponent} (${item.quantity})`)
+            .join(", ")}`
+        : "";
+    setSuccessBar(`Product IN added and components deducted from Stock In.${altText}`);
+
     await loadItems();
 
     setSelectedProduct("");
@@ -95,6 +140,55 @@ export default function ProductInPage() {
     setTimeHour("1");
     setTimeMinute("00");
     setTimeAMPM("AM");
+    setPrice("");
+  };
+
+  const handleUseAlternatives = async () => {
+    if (!alternativeRequest) return;
+
+    setErrorBar("");
+    setSuccessBar("");
+
+    const result = await handleAddProductIn(
+      alternativeRequest.product_name,
+      alternativeRequest.quantity,
+      alternativeRequest.date,
+      alternativeRequest.time_in,
+      alternativeRequest.components,
+      {
+        price,
+      },
+      { allowAlternatives: true },
+    );
+
+    if (!result?.success) {
+      const missingText =
+        result?.missingComponents?.length > 0
+          ? ` Missing: ${result.missingComponents
+              .map((item) => `${item.component} (${item.available}/${item.needed})`)
+              .join(", ")}`
+          : "";
+      setErrorBar(`${result?.message || "Unable to add Product In."}${missingText}`);
+      return;
+    }
+
+    const altText =
+      result.usedAlternatives?.length > 0
+        ? ` Used alternatives: ${result.usedAlternatives
+            .map((item) => `${item.alternative} for ${item.forComponent} (${item.quantity})`)
+            .join(", ")}`
+        : "";
+    setSuccessBar(`Product IN added using alternative materials.${altText}`);
+    setAlternativeRequest(null);
+    await loadItems();
+
+    setSelectedProduct("");
+    setQty(1);
+    setDate("");
+    setTimeHour("1");
+    setTimeMinute("00");
+    setTimeAMPM("AM");
+    setPrice("");
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -229,6 +323,63 @@ export default function ProductInPage() {
                   : "bg-white border-[#E5E7EB]"
               }`}
             >
+              {errorBar && (
+                <div
+                  className={`mb-4 rounded-lg border px-4 py-3 text-sm flex items-start gap-2 ${
+                    darkMode
+                      ? "bg-red-900/20 border-red-800 text-red-300"
+                      : "bg-red-50 border-red-200 text-red-700"
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4 mt-0.5" />
+                  <span>{errorBar}</span>
+                </div>
+              )}
+
+              {successBar && (
+                <div
+                  className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+                    darkMode
+                      ? "bg-green-900/20 border-green-800 text-green-300"
+                      : "bg-green-50 border-green-200 text-green-700"
+                  }`}
+                >
+                  {successBar}
+                </div>
+              )}
+
+              {alternativeRequest && (
+                <div
+                  className={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+                    darkMode
+                      ? "bg-yellow-900/20 border-yellow-800 text-yellow-300"
+                      : "bg-yellow-50 border-yellow-200 text-yellow-700"
+                  }`}
+                >
+                  <p className="mb-2 font-semibold">
+                    Alternative material available in Stock In.
+                  </p>
+                  <p className="mb-3">
+                    {alternativeRequest.alternatives
+                      .map((item) => {
+                        const suggestions = item.suggestions
+                          .map((alt) => `${alt.name} (${alt.available})`)
+                          .join(", ");
+                        return `${item.component}: ${suggestions}`;
+                      })
+                      .join(" | ")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleUseAlternatives}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-yellow-600 hover:bg-yellow-700 text-white transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Use Alternatives
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
                 {/* Product */}
                 <div>
@@ -362,6 +513,31 @@ export default function ProductInPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-4">
+                <div>
+                  <label
+                    className={`text-sm font-medium mb-2 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end">
                 <button
                   type="submit"
@@ -395,6 +571,7 @@ export default function ProductInPage() {
                         "QUANTITY",
                         "DATE",
                         "TIME IN",
+                        "PRICE",
                         "COMPONENTS",
                       ].map((head) => (
                         <th
@@ -414,7 +591,7 @@ export default function ProductInPage() {
                     {currentItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan="5"
+                          colSpan="6"
                           className={`text-center p-8 sm:p-12 ${
                             darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                           } animate__animated animate__fadeIn`}
@@ -462,6 +639,11 @@ export default function ProductInPage() {
                           </td>
                           <td className="p-3 sm:p-4 whitespace-nowrap flex items-center gap-2">
                             <Clock size={14} /> {formatTo12Hour(item.time_in)}
+                          </td>
+                          <td className="p-3 sm:p-4 whitespace-nowrap">
+                            {item.price !== null && item.price !== undefined
+                              ? Number(item.price).toFixed(2)
+                              : "-"}
                           </td>
                           <td className="p-3 sm:p-4">
                             {item.components.length > 0 ? (

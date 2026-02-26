@@ -19,6 +19,7 @@ import {
   handleAddParcelIn,
 } from "../../utils/parcelShippedHelper";
 import AuthGuard from "../../components/AuthGuard";
+import { products } from "../../utils/productsData";
 
 export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,6 +32,10 @@ export default function Page() {
   const [timeHour, setTimeHour] = useState("1");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
+  const [shippingMode, setShippingMode] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [price, setPrice] = useState("");
+  const [itemSuggestions, setItemSuggestions] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -59,6 +64,16 @@ export default function Page() {
       .filter((item) => item.quantity > 0)
       .sort((a, b) => b.quantity - a.quantity);
     setItems(sortedData);
+
+    const existingNames = sortedData.map((item) => item.name).filter(Boolean);
+    const componentNames = products
+      .flatMap((product) => product.components || [])
+      .map((component) => component.name)
+      .flatMap((name) => (name || "").split(/\s+or\s+/i))
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const unique = Array.from(new Set([...existingNames, ...componentNames])).sort();
+    setItemSuggestions(unique);
   };
 
   const formatTo12Hour = (time) => {
@@ -81,6 +96,9 @@ export default function Page() {
       timeHour,
       timeMinute,
       timeAMPM,
+      shipping_mode: shippingMode,
+      client_name: clientName,
+      price,
     });
     if (!result || !result.newItem) return;
 
@@ -96,6 +114,9 @@ export default function Page() {
     setTimeHour("1");
     setTimeMinute("00");
     setTimeAMPM("AM");
+    setShippingMode("");
+    setClientName("");
+    setPrice("");
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -240,6 +261,7 @@ export default function Page() {
                     placeholder="Item name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    list="stock-in-suggestions"
                     className={`border rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
                       darkMode
                         ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white placeholder-[#6B7280]"
@@ -247,6 +269,11 @@ export default function Page() {
                     }`}
                     required
                   />
+                  <datalist id="stock-in-suggestions">
+                    {itemSuggestions.map((suggestion) => (
+                      <option key={suggestion} value={suggestion} />
+                    ))}
+                  </datalist>
                 </div>
 
                 {/* Date */}
@@ -353,6 +380,71 @@ export default function Page() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                <div>
+                  <label
+                    className={`text-sm font-medium mb-2 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    Shipping Mode
+                  </label>
+                  <input
+                    type="text"
+                    value={shippingMode}
+                    onChange={(e) => setShippingMode(e.target.value)}
+                    placeholder="Shopee (J&T)"
+                    className={`border rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label
+                    className={`text-sm font-medium mb-2 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    Client Name
+                  </label>
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Client name"
+                    className={`border rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label
+                    className={`text-sm font-medium mb-2 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className={`border rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] focus:border-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
+                    }`}
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end mt-6">
                 <button
                   type="submit"
@@ -400,7 +492,15 @@ export default function Page() {
                     }`}
                   >
                     <tr>
-                      {["ITEM NAME", "DATE", "QUANTITY", "TIME IN"].map(
+                      {[
+                        "ITEM NAME",
+                        "DATE",
+                        "QUANTITY",
+                        "TIME IN",
+                        "SHIPPING",
+                        "CLIENT",
+                        "PRICE",
+                      ].map(
                         (head) => (
                           <th
                             key={head}
@@ -420,7 +520,7 @@ export default function Page() {
                     {currentItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan="4"
+                          colSpan="7"
                           className={`text-center p-8 sm:p-12 ${
                             darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                           } animate__animated animate__fadeIn`}
@@ -471,6 +571,17 @@ export default function Page() {
                               <Clock size={14} />
                               {formatTo12Hour(item.timeIn)}
                             </div>
+                          </td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
+                            {item.shipping_mode || "-"}
+                          </td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
+                            {item.client_name || "-"}
+                          </td>
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
+                            {item.price !== null && item.price !== undefined
+                              ? Number(item.price).toFixed(2)
+                              : "-"}
                           </td>
                         </tr>
                       ))

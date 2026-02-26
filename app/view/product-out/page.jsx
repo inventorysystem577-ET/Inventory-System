@@ -32,6 +32,9 @@ export default function ProductOutPage() {
   const [timeHour, setTimeHour] = useState("1");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
+  const [shippingMode, setShippingMode] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [price, setPrice] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -105,6 +108,11 @@ export default function ProductOutPage() {
       quantity,
       date,
       formattedTime,
+      {
+        shipping_mode: shippingMode,
+        client_name: clientName,
+        price,
+      },
     );
 
     if (result) {
@@ -127,6 +135,9 @@ export default function ProductOutPage() {
       setTimeHour(currentHour.toString());
       setTimeMinute(formattedMinute);
       setTimeAMPM(ampm);
+      setShippingMode("");
+      setClientName("");
+      setPrice("");
 
       loadItems();
       loadAvailableProducts();
@@ -397,6 +408,65 @@ export default function ProductOutPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
+                  >
+                    Shipping Mode
+                  </label>
+                  <input
+                    type="text"
+                    value={shippingMode}
+                    onChange={(e) => setShippingMode(e.target.value)}
+                    placeholder="Shopee (J&T)"
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
+                  >
+                    Client Name
+                  </label>
+                  <input
+                    type="text"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Client name"
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
+                  >
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end">
                 <button
                   type="submit"
@@ -438,7 +508,15 @@ export default function ProductOutPage() {
                   }
                 >
                   <tr>
-                    {["Product", "Quantity", "Date", "Time Out"].map((head) => (
+                    {[
+                      "Product",
+                      "Quantity",
+                      "Date",
+                      "Time Out",
+                      "Shipping",
+                      "Client",
+                      "Price",
+                    ].map((head) => (
                       <th
                         key={head}
                         className="p-3 text-left text-xs font-semibold uppercase tracking-wider"
@@ -454,7 +532,7 @@ export default function ProductOutPage() {
                   {currentItems.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="4"
+                        colSpan="7"
                         className={`text-center p-8 ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}
                       >
                         <PackageCheck
@@ -501,6 +579,13 @@ export default function ProductOutPage() {
                             <Clock className="w-4 h-4 opacity-50" />
                             {formatTo12Hour(item.time_out)}
                           </div>
+                        </td>
+                        <td className="p-3">{item.shipping_mode || "-"}</td>
+                        <td className="p-3">{item.client_name || "-"}</td>
+                        <td className="p-3">
+                          {item.price !== null && item.price !== undefined
+                            ? Number(item.price).toFixed(2)
+                            : "-"}
                         </td>
                       </tr>
                     ))

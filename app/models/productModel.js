@@ -1,5 +1,258 @@
 import { supabase } from "../../lib/supabaseClient";
 
+const normalizeName = (value = "") =>
+  value.toString().trim().toLowerCase().replace(/\s+/g, " ");
+
+const toNumber = (value) => Number(value || 0);
+
+const parseComponentCandidates = (componentName) => {
+  const raw = (componentName || "").split(/\s+or\s+/i).map((item) => item.trim());
+  return raw.filter(Boolean);
+};
+
+const cloneStockRows = (rows) =>
+  rows.map((row) => ({
+    ...row,
+    quantity: toNumber(row.quantity),
+  }));
+
+const totalAvailableForCandidate = (rows, candidateName) => {
+  const candidateKey = normalizeName(candidateName);
+  return rows
+    .filter((row) => normalizeName(row.item_name) === candidateKey)
+    .reduce((sum, row) => sum + toNumber(row.quantity), 0);
+};
+
+const consumeCandidateStock = (rows, candidateName, requiredQty) => {
+  const candidateKey = normalizeName(candidateName);
+  let remaining = toNumber(requiredQty);
+  const operations = [];
+
+  for (const row of rows) {
+    if (remaining <= 0) break;
+    if (normalizeName(row.item_name) !== candidateKey) continue;
+    if (row.quantity <= 0) continue;
+
+    const consumed = Math.min(row.quantity, remaining);
+    row.quantity -= consumed;
+    remaining -= consumed;
+    operations.push({
+      rowId: row.id,
+      item_name: row.item_name,
+      consumed,
+      newQuantity: row.quantity,
+    });
+  }
+
+  return {
+    consumed: toNumber(requiredQty) - remaining,
+    remaining,
+    operations,
+  };
+};
+
+export const reserveComponentsFromStock = async ({
+  components = [],
+  date,
+  time_out,
+  allowAlternatives = false,
+}) => {
+  if (!Array.isArray(components) || components.length === 0) {
+    return {
+      success: true,
+      usedAlternatives: [],
+      alternativeOptions: [],
+      missingComponents: [],
+      stockDeductions: [],
+    };
+  }
+
+  const { data: parcelInRows, error: parcelInError } = await supabase
+    .from("parcel_in")
+    .select("id, item_name, quantity")
+    .gt("quantity", 0);
+
+  if (parcelInError) {
+    console.error("Supabase fetch error:", parcelInError);
+    return {
+      success: false,
+      message: "Error checking stock-in components",
+      missingComponents: [],
+      alternativeOptions: [],
+      usedAlternatives: [],
+    };
+  }
+
+  const workingRows = cloneStockRows(parcelInRows || []);
+  const stockDeductions = [];
+  const usedAlternatives = [];
+  const missingComponents = [];
+  const alternativeOptions = [];
+
+  for (const component of components) {
+    const componentName = component?.name || "";
+    const neededQty = toNumber(component?.quantity);
+    if (!componentName || neededQty <= 0) continue;
+
+    const candidates = parseComponentCandidates(componentName);
+    if (candidates.length === 0) continue;
+
+    const primaryName = candidates[0];
+    const primaryAvailable = totalAvailableForCandidate(workingRows, primaryName);
+
+    const primaryConsumption = consumeCandidateStock(workingRows, primaryName, neededQty);
+    if (primaryConsumption.consumed > 0) {
+      stockDeductions.push(...primaryConsumption.operations);
+    }
+
+    let remaining = primaryConsumption.remaining;
+    let alternativeUsed = false;
+
+    if (remaining > 0 && candidates.length > 1) {
+      const suggestions = candidates
+        .slice(1)
+        .map((name) => ({
+          name,
+          available: totalAvailableForCandidate(workingRows, name),
+        }))
+        .filter((item) => item.available > 0);
+
+      if (suggestions.length > 0 && !allowAlternatives) {
+        alternativeOptions.push({
+          component: componentName,
+          needed: neededQty,
+          primaryAvailable,
+          suggestions,
+        });
+        continue;
+      }
+
+      if (allowAlternatives) {
+        for (const candidateName of candidates.slice(1)) {
+          if (remaining <= 0) break;
+          const consumption = consumeCandidateStock(
+            workingRows,
+            candidateName,
+            remaining,
+          );
+          if (consumption.consumed > 0) {
+            stockDeductions.push(...consumption.operations);
+            usedAlternatives.push({
+              forComponent: componentName,
+              alternative: candidateName,
+              quantity: consumption.consumed,
+            });
+            remaining = consumption.remaining;
+            alternativeUsed = true;
+          }
+        }
+      }
+    }
+
+    if (remaining > 0) {
+      missingComponents.push({
+        component: componentName,
+        needed: neededQty,
+        available: neededQty - remaining,
+      });
+      continue;
+    }
+
+    if (!alternativeUsed && primaryConsumption.consumed < neededQty && candidates.length === 1) {
+      missingComponents.push({
+        component: componentName,
+        needed: neededQty,
+        available: primaryConsumption.consumed,
+      });
+    }
+  }
+
+  if (missingComponents.length > 0) {
+    return {
+      success: false,
+      message: "Not enough component stock in Stock In.",
+      missingComponents,
+      alternativeOptions,
+      usedAlternatives,
+    };
+  }
+
+  if (alternativeOptions.length > 0 && !allowAlternatives) {
+    return {
+      success: false,
+      requiresAlternativeApproval: true,
+      message: "Alternative materials are available.",
+      alternativeOptions,
+      missingComponents: [],
+      usedAlternatives: [],
+    };
+  }
+
+  const originalById = new Map((parcelInRows || []).map((row) => [row.id, toNumber(row.quantity)]));
+  const updates = workingRows
+    .filter((row) => originalById.get(row.id) !== toNumber(row.quantity))
+    .map((row) =>
+    supabase
+      .from("parcel_in")
+      .update({ quantity: toNumber(row.quantity) })
+      .eq("id", row.id),
+  );
+
+  const updateResults = await Promise.all(updates);
+  const failedUpdate = updateResults.find((result) => result.error);
+  if (failedUpdate?.error) {
+    console.error("Supabase update error:", failedUpdate.error);
+    return {
+      success: false,
+      message: "Failed to update stock-in quantities.",
+      missingComponents: [],
+      alternativeOptions: [],
+      usedAlternatives: [],
+    };
+  }
+
+  const logsByItem = stockDeductions.reduce((acc, deduction) => {
+    if (!deduction.item_name || deduction.consumed <= 0) return acc;
+    const key = normalizeName(deduction.item_name);
+    const current = acc.get(key) || {
+      item_name: deduction.item_name,
+      quantity: 0,
+    };
+    current.quantity += deduction.consumed;
+    acc.set(key, current);
+    return acc;
+  }, new Map());
+
+  const logs = Array.from(logsByItem.values()).map((item) => ({
+    item_name: item.item_name,
+    date,
+    quantity: item.quantity,
+    time_out,
+  }));
+
+  if (logs.length > 0) {
+    const { error: parcelOutError } = await supabase.from("parcel_out").insert(logs);
+    if (parcelOutError) {
+      console.error("Supabase insert error:", parcelOutError);
+      return {
+        success: false,
+        message: "Component deducted but failed to log Stock Out.",
+        missingComponents: [],
+        alternativeOptions: [],
+        usedAlternatives,
+      };
+    }
+  }
+
+  return {
+    success: true,
+    missingComponents: [],
+    alternativeOptions: [],
+    usedAlternatives,
+    stockDeductions: logs,
+  };
+};
+
 /* ===============================
         PRODUCT IN MODEL
 ================================*/
@@ -55,6 +308,12 @@ export const upsertProductIn = async (data) => {
         components: mergedComponents,
         date: data.date,
         time_in: data.time_in,
+        shipping_mode: data.shipping_mode || null,
+        client_name: data.client_name || null,
+        price:
+          data.price === "" || data.price === null || data.price === undefined
+            ? null
+            : Number(data.price),
       })
       .eq("id", existingData.id)
       .select();
@@ -69,7 +328,17 @@ export const upsertProductIn = async (data) => {
     // Insert new product
     const { data: insertedData, error: insertError } = await supabase
       .from("product_in")
-      .insert([data])
+      .insert([
+        {
+          ...data,
+          shipping_mode: data.shipping_mode || null,
+          client_name: data.client_name || null,
+          price:
+            data.price === "" || data.price === null || data.price === undefined
+              ? null
+              : Number(data.price),
+        },
+      ])
       .select();
 
     if (insertError) {
@@ -196,9 +465,19 @@ export const deductProductIn = async (product_name, quantity) => {
 
 // Insert a new Product Out
 export const insertProductOut = async (data) => {
+  const payload = {
+    ...data,
+    shipping_mode: data.shipping_mode || null,
+    client_name: data.client_name || null,
+    price:
+      data.price === "" || data.price === null || data.price === undefined
+        ? null
+        : Number(data.price),
+  };
+
   const { data: insertedData, error } = await supabase
     .from("products_out")
-    .insert([data])
+    .insert([payload])
     .select();
 
   if (error) {
