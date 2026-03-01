@@ -34,11 +34,18 @@ export default function ProductOutPage() {
   const [timeAMPM, setTimeAMPM] = useState("AM");
   const [shippingMode, setShippingMode] = useState("");
   const [clientName, setClientName] = useState("");
-  const [price, setPrice] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
+  const [totalPrice, setTotalPrice] = useState(0);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
+  useEffect(() => {
+    const price = parseFloat(unitPrice) || 0;
+    const qty = parseInt(quantity) || 0;
+    setTotalPrice(price * qty);
+  }, [unitPrice, quantity]);
+  
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
     if (savedDarkMode !== null) setDarkMode(savedDarkMode === "true");
@@ -69,7 +76,30 @@ export default function ProductOutPage() {
 
   const loadAvailableProducts = async () => {
     const data = await fetchProductInController();
-    setAvailableProducts(data.filter((product) => product.quantity > 0));
+    const grouped = (data || []).reduce((acc, row) => {
+      const key = row.product_name;
+      if (!key) return acc;
+      if (!acc[key]) {
+        acc[key] = {
+          product_name: key,
+          quantity: 0,
+          totalPrice: 0,
+        };
+      }
+      acc[key].quantity += Number(row.quantity || 0);
+      acc[key].totalPrice += Number(row.price || 0);
+      return acc;
+    }, {});
+
+    const aggregated = Object.values(grouped)
+      .map((row) => ({
+        ...row,
+        price: row.totalPrice,
+      }))
+      .filter((row) => row.quantity > 0)
+      .sort((a, b) => b.quantity - a.quantity);
+
+    setAvailableProducts(aggregated);
   };
 
   const handleProductSelect = (e) => {
@@ -81,9 +111,15 @@ export default function ProductOutPage() {
     if (selectedProduct) {
       setMaxQuantity(selectedProduct.quantity);
       setQuantity(1);
+      if (selectedProduct.price && selectedProduct.quantity > 0) {
+        setUnitPrice((selectedProduct.price / selectedProduct.quantity).toFixed(2));
+      } else {
+        setUnitPrice("0.00");
+      }
     } else {
       setMaxQuantity(0);
       setQuantity(1);
+      setUnitPrice("");
     }
   };
 
@@ -111,7 +147,7 @@ export default function ProductOutPage() {
       {
         shipping_mode: shippingMode,
         client_name: clientName,
-        price,
+        price: totalPrice,
       },
     );
 
@@ -137,7 +173,7 @@ export default function ProductOutPage() {
       setTimeAMPM(ampm);
       setShippingMode("");
       setClientName("");
-      setPrice("");
+      setUnitPrice("");
 
       loadItems();
       loadAvailableProducts();
@@ -292,7 +328,7 @@ export default function ProductOutPage() {
                   >
                     <option value="">Select a product</option>
                     {availableProducts.map((product) => (
-                      <option key={product.id} value={product.product_name}>
+                      <option key={product.product_name} value={product.product_name}>
                         {product.product_name} (Stock: {product.quantity})
                       </option>
                     ))}
@@ -330,6 +366,11 @@ export default function ProductOutPage() {
                     required
                     disabled={!productName}
                   />
+                  {productName && (
+                    <p className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Total Price: ₱{totalPrice.toLocaleString()}
+                    </p>
+                  )}
                 </div>
 
                 {/* Date */}
@@ -449,14 +490,14 @@ export default function ProductOutPage() {
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}
                   >
-                    Price
+                    Unit Price
                   </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
                     placeholder="0.00"
                     className={`border rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 ${
                       darkMode

@@ -36,6 +36,7 @@ export default function Page() {
   const [clientName, setClientName] = useState("");
   const [price, setPrice] = useState("");
   const [itemSuggestions, setItemSuggestions] = useState([]);
+  const computedTotalPrice = (Number(price) || 0) * (Number(quantity) || 0);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -98,7 +99,7 @@ export default function Page() {
       timeAMPM,
       shipping_mode: shippingMode,
       client_name: clientName,
-      price,
+      price: computedTotalPrice,
     });
     if (!result || !result.newItem) return;
 
@@ -400,6 +401,13 @@ export default function Page() {
                         : "border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
                     }`}
                   />
+                  <p
+                    className={`text-xs mt-1 ${
+                      darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                    }`}
+                  >
+                    Display Price: ₱{computedTotalPrice.toLocaleString()}
+                  </p>
                 </div>
                 <div>
                   <label
@@ -580,7 +588,7 @@ export default function Page() {
                           </td>
                           <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
                             {item.price !== null && item.price !== undefined
-                              ? Number(item.price).toFixed(2)
+                              ? `₱${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : "-"}
                           </td>
                         </tr>

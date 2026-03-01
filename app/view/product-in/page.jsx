@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import "animate.css";
 import {
   fetchProductInController,
@@ -22,26 +23,117 @@ import {
 } from "../../controller/productController";
 import { products } from "../../utils/productsData";
 import AuthGuard from "../../components/AuthGuard";
+import MissingComponentsModal from "../../components/MissingComponentsModal";
+import { fetchParcelItems, handleAddParcelIn } from "../../utils/parcelShippedHelper";
 
 export default function ProductInPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("product-in");
   const [darkMode, setDarkMode] = useState(false);
 
+  const searchParams = useSearchParams();
+  const productParam = searchParams.get("product");
+
   const [items, setItems] = useState([]);
+  const [stockInItems, setStockInItems] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [qty, setQty] = useState(1);
+  const [price, setPrice] = useState(0);
   const [date, setDate] = useState("");
   const [timeHour, setTimeHour] = useState("1");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
-  const [price, setPrice] = useState("");
+
+  useEffect(() => {
+    if (productParam) {
+      setSelectedProduct(productParam);
+    }
+  }, [productParam]);
+
+  useEffect(() => {
+    if (selectedProduct) {
+      const product = products.find((p) => p.name === selectedProduct);
+      if (product) {
+        const totalStock = items
+          .filter((item) => item.product_name === selectedProduct)
+          .reduce((acc, item) => acc + item.quantity, 0);
+        setCurrentStock(totalStock);
+      }
+    } else {
+      setCurrentStock(0);
+      setPrice(0);
+    }
+  }, [selectedProduct, items]);
+
+  useEffect(() => {
+    const quantity = parseInt(qty) || 0;
+    setTotalPrice(price * quantity);
+  }, [qty, price]);
+
+
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [currentStock, setCurrentStock] = useState(0);
   const [errorBar, setErrorBar] = useState("");
   const [successBar, setSuccessBar] = useState("");
   const [alternativeRequest, setAlternativeRequest] = useState(null);
+  const [missing, setMissing] = useState([]);
+  const [showMissingComponentsModal, setShowMissingComponentsModal] =
+    useState(false);
+  const [isAddingMissingStock, setIsAddingMissingStock] = useState(false);
+  const [showComponentStockModal, setShowComponentStockModal] = useState(false);
+  const [availableComponents, setAvailableComponents] = useState([]);
+  const [missingComponentsForSelected, setMissingComponentsForSelected] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+
+  const normalizeName = (value = "") =>
+    value.toString().trim().toLowerCase().replace(/\s+/g, " ");
+
+  const computeComponentAvailability = (
+    productName,
+    quantityToBuild,
+    availableStockRows,
+  ) => {
+    const selected = products.find((p) => p.name === productName);
+    if (!selected) {
+      return { available: [], missing: [] };
+    }
+
+    const quantityMultiplier = Math.max(parseInt(quantityToBuild) || 1, 1);
+
+    const rows = (availableStockRows || []).map((row) => ({
+      ...row,
+      quantity: Number(row.quantity || 0),
+    }));
+
+    const list = selected.components.map((component) => {
+      const required = Number(component.baseQty || 0) * quantityMultiplier;
+      const candidates = (component.name || "")
+        .split(/\s+or\s+/i)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      const available = rows
+        .filter((row) =>
+          candidates.some(
+            (candidate) => normalizeName(candidate) === normalizeName(row.name),
+          ),
+        )
+        .reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+
+      return {
+        name: component.name,
+        required,
+        available,
+      };
+    });
+
+    return {
+      available: list.filter((item) => item.available >= item.required),
+      missing: list.filter((item) => item.available < item.required),
+    };
+  };
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
@@ -57,6 +149,7 @@ export default function ProductInPage() {
     setTimeAMPM(ampm);
 
     loadItems();
+    loadStockInItems();
   }, []);
 
   const loadItems = async () => {
@@ -67,6 +160,19 @@ export default function ProductInPage() {
     }));
     setItems(sanitizedData.sort((a, b) => b.id - a.id));
   };
+
+  const loadStockInItems = async () => {
+    const data = await fetchParcelItems();
+    setStockInItems(Array.isArray(data) ? data : []);
+  };
+
+  useEffect(() => {
+    if (!selectedProduct) return;
+    const computed = computeComponentAvailability(selectedProduct, qty, stockInItems);
+    setAvailableComponents(computed.available);
+    setMissingComponentsForSelected(computed.missing);
+    setShowComponentStockModal(true);
+  }, [selectedProduct, qty, stockInItems]);
 
   const handleAddItem = async (e) => {
     e.preventDefault();
@@ -79,10 +185,11 @@ export default function ProductInPage() {
     );
     if (!product) return;
 
-    const components = product.components.map((c) => ({
+    const predefinedComponents = product.components.map((c) => ({
       name: c.name,
       quantity: c.baseQty * quantityToAdd,
     }));
+    const components = predefinedComponents;
 
     const time_in = `${timeHour}:${timeMinute} ${timeAMPM}`;
     setErrorBar("");
@@ -95,9 +202,7 @@ export default function ProductInPage() {
       date,
       time_in,
       components,
-      {
-        price,
-      },
+      { price: totalPrice },
     );
 
     if (!result?.success) {
@@ -111,6 +216,11 @@ export default function ProductInPage() {
           alternatives: result.alternativeOptions || [],
         });
         return;
+      }
+
+      if (result?.missingComponents?.length > 0) {
+        setMissing(result.missingComponents);
+        setShowMissingComponentsModal(true);
       }
 
       const missingText =
@@ -133,14 +243,16 @@ export default function ProductInPage() {
     setSuccessBar(`Product IN added and components deducted from Stock In.${altText}`);
 
     await loadItems();
+    await loadStockInItems();
 
     setSelectedProduct("");
     setQty(1);
+    setPrice(0);
     setDate("");
     setTimeHour("1");
     setTimeMinute("00");
     setTimeAMPM("AM");
-    setPrice("");
+
   };
 
   const handleUseAlternatives = async () => {
@@ -156,7 +268,7 @@ export default function ProductInPage() {
       alternativeRequest.time_in,
       alternativeRequest.components,
       {
-        price,
+        price: totalPrice,
       },
       { allowAlternatives: true },
     );
@@ -181,14 +293,53 @@ export default function ProductInPage() {
     setSuccessBar(`Product IN added using alternative materials.${altText}`);
     setAlternativeRequest(null);
     await loadItems();
+    await loadStockInItems();
 
     setSelectedProduct("");
     setQty(1);
+    setPrice(0);
     setDate("");
     setTimeHour("1");
     setTimeMinute("00");
     setTimeAMPM("AM");
-    setPrice("");
+
+  };
+
+  const handleAddMissingToStockIn = async (payload) => {
+    if (!payload?.item_name || !payload?.date || Number(payload?.quantity) <= 0) {
+      return;
+    }
+
+    setIsAddingMissingStock(true);
+    try {
+      const [timeValue = "1", minuteValue = "00", ampmValue = "AM"] = (
+        payload.time_in || "1:00 AM"
+      ).split(/[: ]/);
+
+      const result = await handleAddParcelIn({
+        name: payload.item_name,
+        date: payload.date,
+        quantity: Number(payload.quantity),
+        timeHour: timeValue,
+        timeMinute: minuteValue,
+        timeAMPM: ampmValue,
+        shipping_mode: payload.shipping_mode || "",
+        client_name: payload.client_name || "",
+        price: payload.price ?? "",
+      });
+
+      if (!result?.newItem) {
+        setErrorBar("Unable to add missing component to Stock In.");
+        return;
+      }
+
+      await loadStockInItems();
+      setSuccessBar(
+        `Added ${payload.quantity} of ${payload.item_name} to Stock In.`,
+      );
+    } finally {
+      setIsAddingMissingStock(false);
+    }
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -241,6 +392,9 @@ export default function ProductInPage() {
     hour = hour % 12 || 12;
     return `${hour}:${minute} ${ampm}`;
   };
+
+  const selectedProductConfig = products.find((p) => p.name === selectedProduct);
+  const noDefinedComponents = (selectedProductConfig?.components || []).length === 0;
 
   return (
     <AuthGuard darkMode={darkMode}>
@@ -380,7 +534,7 @@ export default function ProductInPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-4">
                 {/* Product */}
                 <div>
                   <label
@@ -392,7 +546,10 @@ export default function ProductInPage() {
                   </label>
                   <select
                     value={selectedProduct}
-                    onChange={(e) => setSelectedProduct(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedProduct(e.target.value);
+                      setPrice(0);
+                    }}
                     className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
                       darkMode
                         ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
@@ -407,6 +564,34 @@ export default function ProductInPage() {
                       </option>
                     ))}
                   </select>
+                   {selectedProduct && (
+                    <p className={`text-sm mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Current Stock: {currentStock}
+                    </p>
+                  )}
+                </div>
+
+                {/* Price */}
+                <div>
+                  <label
+                    className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
+                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                    }`}
+                  >
+                    <Package className="w-4 h-4" /> Price
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
+                      darkMode
+                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                    }`}
+                    required
+                  />
                 </div>
 
                 {/* Quantity */}
@@ -513,30 +698,7 @@ export default function ProductInPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-4">
-                <div>
-                  <label
-                    className={`text-sm font-medium mb-2 ${
-                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                    }`}
-                  >
-                    Price
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0.00"
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
-                      darkMode
-                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
-                        : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
-                    }`}
-                  />
-                </div>
-              </div>
+
 
               <div className="flex justify-end">
                 <button
@@ -571,7 +733,6 @@ export default function ProductInPage() {
                         "QUANTITY",
                         "DATE",
                         "TIME IN",
-                        "PRICE",
                         "COMPONENTS",
                       ].map((head) => (
                         <th
@@ -590,90 +751,85 @@ export default function ProductInPage() {
                   >
                     {currentItems.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan="6"
-                          className={`text-center p-8 sm:p-12 ${
-                            darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
-                          } animate__animated animate__fadeIn`}
-                        >
-                          <PackageCheck
-                            className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__fadeIn ${
-                              darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
-                            }`}
-                          />
-                          <p className="text-base sm:text-lg font-medium mb-1">
-                            No products added yet
-                          </p>
-                          <p className="text-xs sm:text-sm opacity-75">
-                            Add your first product using the form above
-                          </p>
-                        </td>
-                      </tr>
-                    ) : (
-                      currentItems.map((item, index) => (
-                        <tr
-                          key={item.id}
-                          className={`border-t transition animate__animated animate__fadeIn animate__faster ${
-                            darkMode
-                              ? "border-[#374151] hover:bg-[#374151]/40"
-                              : "border-[#E5E7EB] hover:bg-[#F3F4F6]"
-                          }`}
-                          style={{ animationDelay: `${index * 0.03}s` }}
-                        >
-                          <td className="p-3 sm:p-4 font-semibold text-sm sm:text-base whitespace-nowrap">
-                            {item.product_name}
-                          </td>
-                          <td className="p-3 sm:p-4">
-                            <span
-                              className={`px-2 sm:px-3 py-1 rounded-lg font-bold text-xs sm:text-sm ${
-                                darkMode
-                                  ? "bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30"
-                                  : "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]"
-                              }`}
-                            >
-                              {item.quantity}
-                            </span>
-                          </td>
-                          <td className="p-3 sm:p-4 whitespace-nowrap">
-                            {item.date}
-                          </td>
-                          <td className="p-3 sm:p-4 whitespace-nowrap flex items-center gap-2">
-                            <Clock size={14} /> {formatTo12Hour(item.time_in)}
-                          </td>
-                          <td className="p-3 sm:p-4 whitespace-nowrap">
-                            {item.price !== null && item.price !== undefined
-                              ? Number(item.price).toFixed(2)
-                              : "-"}
-                          </td>
-                          <td className="p-3 sm:p-4">
-                            {item.components.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {item.components.map((c, i) => (
-                                  <span
-                                    key={i}
-                                    className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                      darkMode
-                                        ? "bg-blue-800 text-blue-100"
-                                        : "bg-blue-100 text-blue-800"
-                                    }`}
-                                  >
-                                    {c.quantity} - {c.name}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <span
-                                className={
-                                  darkMode ? "text-gray-500" : "text-gray-400"
-                                }
-                              >
-                                -
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
+                                                <td
+                                                  colSpan="5"
+                                                  className={`text-center p-8 sm:p-12 ${
+                                                    darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                                                  } animate__animated animate__fadeIn`}
+                                                >
+                                                  <PackageCheck
+                                                    className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 animate__animated animate__fadeIn ${
+                                                      darkMode ? "text-[#6B7280]" : "text-[#D1D5DB]"
+                                                    }`}
+                                                  />
+                                                  <p className="text-base sm:text-lg font-medium mb-1">
+                                                    No products added yet
+                                                  </p>
+                                                  <p className="text-xs sm:text-sm opacity-75">
+                                                    Add your first product using the form above
+                                                  </p>
+                                                </td>
+                                              </tr>
+                                            ) : (
+                                              currentItems.map((item, index) => (
+                                                <tr
+                                                  key={item.id}
+                                                  className={`border-t transition animate__animated animate__fadeIn animate__faster ${
+                                                    darkMode
+                                                      ? "border-[#374151] hover:bg-[#374151]/40"
+                                                      : "border-[#E5E7EB] hover:bg-[#F3F4F6]"
+                                                  }`}
+                                                  style={{ animationDelay: `${index * 0.03}s` }}
+                                                >
+                                                  <td className="p-3 sm:p-4 font-semibold text-sm sm:text-base whitespace-nowrap">
+                                                    {item.product_name}
+                                                  </td>
+                                                  <td className="p-3 sm:p-4">
+                                                    <span
+                                                      className={`px-2 sm:px-3 py-1 rounded-lg font-bold text-xs sm:text-sm ${
+                                                        darkMode
+                                                          ? "bg-[#22C55E]/20 text-[#22C55E] border border-[#22C55E]/30"
+                                                          : "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]"
+                                                      }`}
+                                                    >
+                                                      {item.quantity}
+                                                    </span>
+                                                  </td>
+                                                  <td className="p-3 sm:p-4 whitespace-nowrap">
+                                                    {item.date}
+                                                  </td>
+                                                  <td className="p-3 sm:p-4 whitespace-nowrap flex items-center gap-2">
+                                                    <Clock size={14} /> {formatTo12Hour(item.time_in)}
+                                                  </td>
+                                                  <td className="p-3 sm:p-4">
+                                                    {item.components.length > 0 ? (
+                                                      <div className="flex flex-wrap gap-1">
+                                                        {item.components.map((c, i) => (
+                                                          <span
+                                                            key={i}
+                                                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                              darkMode
+                                                                ? "bg-blue-800 text-blue-100"
+                                                                : "bg-blue-100 text-blue-800"
+                                                            }`}
+                                                          >
+                                                            {c.quantity} - {c.name}
+                                                          </span>
+                                                        ))}
+                                                      </div>
+                                                    ) : (
+                                                      <span
+                                                        className={
+                                                          darkMode ? "text-gray-500" : "text-gray-400"
+                                                        }
+                                                      >
+                                                        -
+                                                      </span>
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              ))
+                                            )}
                   </tbody>
                 </table>
               </div>
@@ -763,6 +919,121 @@ export default function ProductInPage() {
           </div>
         </main>
       </div>
+      <MissingComponentsModal
+        show={showMissingComponentsModal}
+        onClose={() => setShowMissingComponentsModal(false)}
+        missingComponents={missing}
+        darkMode={darkMode}
+        onAddToStockIn={handleAddMissingToStockIn}
+        isAdding={isAddingMissingStock}
+      />
+      {showComponentStockModal && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowComponentStockModal(false)}
+          ></div>
+          <div
+            className={`relative z-10 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl border shadow-2xl ${
+              darkMode
+                ? "bg-[#1F2937] border-[#374151] text-white"
+                : "bg-white border-[#E5E7EB] text-black"
+            }`}
+          >
+            <div
+              className={`p-4 border-b flex items-center justify-between ${
+                darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <img
+                  src={darkMode ? "/logo.png" : "/logo2.png"}
+                  alt="Logo"
+                  className="w-9 h-9 object-contain rounded-md"
+                />
+                <h2 className="text-lg font-semibold">
+                  {selectedProduct} Components Availability
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowComponentStockModal(false)}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  darkMode
+                    ? "bg-[#374151] hover:bg-[#4B5563]"
+                    : "bg-[#F3F4F6] hover:bg-[#E5E7EB]"
+                }`}
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold mb-2 text-green-600">Available Stocks</h3>
+                {availableComponents.length === 0 ? (
+                  <p className={`text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
+                    No fully available components.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {availableComponents.map((item) => (
+                      <div
+                        key={item.name}
+                        className={`rounded-lg border p-2 text-sm ${
+                          darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+                        }`}
+                      >
+                        <div
+                          className={`font-medium ${
+                            darkMode ? "text-white" : "text-[#111827]"
+                          }`}
+                        >
+                          {item.name}
+                        </div>
+                        <div className={darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}>
+                          {item.available}/{item.required}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2 text-red-500">Missing / Kulang Stocks</h3>
+                {missingComponentsForSelected.length === 0 ? (
+                  <p className={`text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
+                    {noDefinedComponents
+                      ? "No predefined components for this product."
+                      : "Complete lahat ng components."}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {missingComponentsForSelected.map((item) => (
+                      <div
+                        key={item.name}
+                        className={`rounded-lg border p-2 text-sm ${
+                          darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+                        }`}
+                      >
+                        <div
+                          className={`font-medium ${
+                            darkMode ? "text-white" : "text-[#111827]"
+                          }`}
+                        >
+                          {item.name}
+                        </div>
+                        <div className={darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}>
+                          {item.available}/{item.required}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthGuard>
   );
 }

@@ -1,6 +1,7 @@
 export const products = [
   {
     name: "FULLPACKAGE",
+    price: 5000,
     components: [
       // MOBILE ROBOT
       { name: "Arduino Nano with Cable", baseQty: 1 },
@@ -43,6 +44,7 @@ export const products = [
   },
   {
     name: "EROBOT v1.5",
+    price: 3500,
     components: [
       {
         name: "Arduino Nano with Cable and PCB made by erovoutika",
@@ -66,10 +68,12 @@ export const products = [
   },
   {
     name: "AI EROBOT",
+    price: 8000,
     components: [],
   },
   {
     name: "EROBOT v2",
+    price: 4500,
     components: [
       {
         name: "Arduino Nano with Cable and PCB made by erovoutika",
@@ -93,6 +97,7 @@ export const products = [
   },
   {
     name: "EROBOT v3",
+    price: 6000,
     components: [
       { name: "X Motion MICROCONTROLLER", baseQty: 1 },
       {
@@ -114,6 +119,7 @@ export const products = [
   },
   {
     name: "ERO KIT 2024-02",
+    price: 2500,
     components: [
       { name: "RASPBERRY PI4 BLACK CASE WITH FAN MOUNT", baseQty: 1 },
       { name: "RASPBERRY PI 4 MODEL B 4GB", baseQty: 1 },
@@ -128,6 +134,7 @@ export const products = [
   },
   {
     name: "Electronics kit v1",
+    price: 1500,
     components: [
       // SOLDERING KIT
       { name: "Soldering Iron", baseQty: 1 },
@@ -157,6 +164,7 @@ export const products = [
   },
   {
     name: "ERO KIT 2024-01",
+    price: 3000,
     components: [
       // SOLDERING KIT
       { name: "Soldering Iron", baseQty: 1 },

@@ -14,6 +14,8 @@ const cloneStockRows = (rows) =>
   rows.map((row) => ({
     ...row,
     quantity: toNumber(row.quantity),
+    original_quantity: toNumber(row.quantity),
+    price: row.price === null || row.price === undefined ? null : toNumber(row.price),
   }));
 
 const totalAvailableForCandidate = (rows, candidateName) => {
@@ -34,12 +36,18 @@ const consumeCandidateStock = (rows, candidateName, requiredQty) => {
     if (row.quantity <= 0) continue;
 
     const consumed = Math.min(row.quantity, remaining);
+    const unitPrice =
+      toNumber(row.original_quantity) > 0 && row.price !== null
+        ? toNumber(row.price) / toNumber(row.original_quantity)
+        : 0;
+    const consumedPrice = unitPrice * consumed;
     row.quantity -= consumed;
     remaining -= consumed;
     operations.push({
       rowId: row.id,
       item_name: row.item_name,
       consumed,
+      consumedPrice,
       newQuantity: row.quantity,
     });
   }
@@ -69,7 +77,7 @@ export const reserveComponentsFromStock = async ({
 
   const { data: parcelInRows, error: parcelInError } = await supabase
     .from("parcel_in")
-    .select("id, item_name, quantity")
+    .select("id, item_name, quantity, price")
     .gt("quantity", 0);
 
   if (parcelInError) {
@@ -217,8 +225,10 @@ export const reserveComponentsFromStock = async ({
     const current = acc.get(key) || {
       item_name: deduction.item_name,
       quantity: 0,
+      price: 0,
     };
     current.quantity += deduction.consumed;
+    current.price += toNumber(deduction.consumedPrice);
     acc.set(key, current);
     return acc;
   }, new Map());
@@ -228,6 +238,7 @@ export const reserveComponentsFromStock = async ({
     date,
     quantity: item.quantity,
     time_out,
+    price: item.price > 0 ? item.price : null,
   }));
 
   if (logs.length > 0) {
@@ -257,96 +268,29 @@ export const reserveComponentsFromStock = async ({
         PRODUCT IN MODEL
 ================================*/
 
-// Insert or update Product In
+// Insert Product In as a separate transaction row
 export const upsertProductIn = async (data) => {
-  // Check if product already exists
-  const { data: existingData, error } = await supabase
-    .from("product_in")
-    .select("*")
-    .eq("product_name", data.product_name)
-    .single();
+  const payload = {
+    ...data,
+    shipping_mode: data.shipping_mode || null,
+    client_name: data.client_name || null,
+    price:
+      data.price === "" || data.price === null || data.price === undefined
+        ? null
+        : Number(data.price),
+  };
 
-  if (error && error.code !== "PGRST116") {
-    // PGRST116 = no rows found
-    console.error("Supabase fetch error:", error);
+  const { data: insertedData, error: insertError } = await supabase
+    .from("product_in")
+    .insert([payload])
+    .select();
+
+  if (insertError) {
+    console.error("Supabase insert error:", insertError);
     return null;
   }
 
-  if (existingData) {
-    // Merge quantities
-    const newQuantity = existingData.quantity + data.quantity;
-
-    // Merge components
-    let mergedComponents = [];
-    const existingComponents = Array.isArray(existingData.components)
-      ? existingData.components
-      : JSON.parse(existingData.components || "[]");
-
-    const newComponents = Array.isArray(data.components)
-      ? data.components
-      : JSON.parse(data.components || "[]");
-
-    // Merge each component
-    mergedComponents = existingComponents.map((comp) => {
-      const newComp = newComponents.find((c) => c.name === comp.name);
-      if (newComp)
-        return { name: comp.name, quantity: comp.quantity + newComp.quantity };
-      return comp;
-    });
-
-    // Add components that didn't exist before
-    newComponents.forEach((comp) => {
-      if (!mergedComponents.find((c) => c.name === comp.name))
-        mergedComponents.push(comp);
-    });
-
-    // Update Supabase
-    const { data: updatedData, error: updateError } = await supabase
-      .from("product_in")
-      .update({
-        quantity: newQuantity,
-        components: mergedComponents,
-        date: data.date,
-        time_in: data.time_in,
-        shipping_mode: data.shipping_mode || null,
-        client_name: data.client_name || null,
-        price:
-          data.price === "" || data.price === null || data.price === undefined
-            ? null
-            : Number(data.price),
-      })
-      .eq("id", existingData.id)
-      .select();
-
-    if (updateError) {
-      console.error("Supabase update error:", updateError);
-      return null;
-    }
-
-    return updatedData[0];
-  } else {
-    // Insert new product
-    const { data: insertedData, error: insertError } = await supabase
-      .from("product_in")
-      .insert([
-        {
-          ...data,
-          shipping_mode: data.shipping_mode || null,
-          client_name: data.client_name || null,
-          price:
-            data.price === "" || data.price === null || data.price === undefined
-              ? null
-              : Number(data.price),
-        },
-      ])
-      .select();
-
-    if (insertError) {
-      console.error("Supabase insert error:", insertError);
-      return null;
-    }
-    return insertedData[0];
-  }
+  return insertedData[0];
 };
 
 // Get all Product In records
@@ -374,88 +318,110 @@ export const getProductInByName = async (product_name) => {
     .from("product_in")
     .select("*")
     .eq("product_name", product_name)
-    .single();
+    .order("id", { ascending: false })
+    .limit(1);
 
   if (error) {
     console.error("Supabase fetch error:", error);
     return null;
   }
 
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) return null;
+
   return {
-    ...data,
-    components: Array.isArray(data.components)
-      ? data.components
-      : JSON.parse(data.components || "[]"),
+    ...row,
+    components: Array.isArray(row.components)
+      ? row.components
+      : JSON.parse(row.components || "[]"),
   };
 };
 
 // Deduct quantity and components from Product In
 export const deductProductIn = async (product_name, quantity) => {
-  const { data: existingData, error } = await supabase
+  const requestedQty = toNumber(quantity);
+  const { data: productRows, error } = await supabase
     .from("product_in")
     .select("*")
     .eq("product_name", product_name)
-    .single();
+    .gt("quantity", 0)
+    .order("id", { ascending: true });
 
   if (error) {
     console.error("Product not found in inventory:", error);
     return { success: false, message: "Product not found in inventory" };
   }
 
-  // Check if enough quantity available
-  if (existingData.quantity < quantity) {
+  const rows = productRows || [];
+  const totalAvailable = rows.reduce((sum, row) => sum + toNumber(row.quantity), 0);
+
+  if (totalAvailable < requestedQty) {
     return {
       success: false,
-      message: `Not enough stock! Available: ${existingData.quantity}, Requested: ${quantity}`,
+      message: `Not enough stock! Available: ${totalAvailable}, Requested: ${requestedQty}`,
     };
   }
 
-  const newQuantity = existingData.quantity - quantity;
+  let remainingToDeduct = requestedQty;
+  const deductedComponentsMap = new Map();
 
-  // Calculate deducted components
-  const existingComponents = Array.isArray(existingData.components)
-    ? existingData.components
-    : JSON.parse(existingData.components || "[]");
+  for (const row of rows) {
+    if (remainingToDeduct <= 0) break;
 
-  // Deduct components proportionally
-  const deductedComponents = existingComponents.map((comp) => {
-    const componentPerProduct = comp.quantity / existingData.quantity;
-    const deductAmount = componentPerProduct * quantity;
-    return {
-      name: comp.name,
-      quantity: deductAmount,
-    };
-  });
+    const rowQty = toNumber(row.quantity);
+    if (rowQty <= 0) continue;
 
-  // Update remaining components
-  const remainingComponents = existingComponents.map((comp) => {
-    const componentPerProduct = comp.quantity / existingData.quantity;
-    const deductAmount = componentPerProduct * quantity;
-    return {
-      name: comp.name,
-      quantity: comp.quantity - deductAmount,
-    };
-  });
+    const consumedQty = Math.min(rowQty, remainingToDeduct);
+    const newQuantity = rowQty - consumedQty;
 
-  // Update Supabase
-  const { data: updatedData, error: updateError } = await supabase
-    .from("product_in")
-    .update({
-      quantity: newQuantity,
-      components: remainingComponents,
-    })
-    .eq("id", existingData.id)
-    .select();
+    const existingComponents = Array.isArray(row.components)
+      ? row.components
+      : JSON.parse(row.components || "[]");
 
-  if (updateError) {
-    console.error("Supabase update error:", updateError);
-    return { success: false, message: "Error updating inventory" };
+    const remainingComponents = existingComponents.map((comp) => {
+      const componentQty = toNumber(comp.quantity);
+      const perUnit = rowQty > 0 ? componentQty / rowQty : 0;
+      const deductAmount = perUnit * consumedQty;
+      const nextQty = Math.max(componentQty - deductAmount, 0);
+
+      if (deductAmount > 0) {
+        const previous = deductedComponentsMap.get(comp.name) || 0;
+        deductedComponentsMap.set(comp.name, previous + deductAmount);
+      }
+
+      return {
+        name: comp.name,
+        quantity: nextQty,
+      };
+    });
+
+    const { error: updateError } = await supabase
+      .from("product_in")
+      .update({
+        quantity: newQuantity,
+        components: remainingComponents,
+      })
+      .eq("id", row.id);
+
+    if (updateError) {
+      console.error("Supabase update error:", updateError);
+      return { success: false, message: "Error updating inventory" };
+    }
+
+    remainingToDeduct -= consumedQty;
   }
+
+  const deductedComponents = Array.from(deductedComponentsMap.entries()).map(
+    ([name, qty]) => ({
+      name,
+      quantity: qty,
+    }),
+  );
 
   return {
     success: true,
     deductedComponents,
-    remainingQuantity: newQuantity,
+    remainingQuantity: totalAvailable - requestedQty,
   };
 };
 

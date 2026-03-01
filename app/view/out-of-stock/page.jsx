@@ -15,6 +15,7 @@ import {
   XCircle,
   Package,
 } from "lucide-react";
+import Link from "next/link";
 import "animate.css";
 
 // Import controllers
@@ -832,6 +833,7 @@ export default function Page() {
                           "Current Stock",
                           "Status",
                           "Date Added",
+                          "Actions",
                         ].map((head) => (
                           <th
                             key={head}
@@ -849,7 +851,7 @@ export default function Page() {
                     >
                       {filteredProductItems.length === 0 ? (
                         <tr>
-                          <td colSpan="4" className="px-4 py-12 text-center">
+                          <td colSpan="5" className="px-4 py-12 text-center">
                             <div className="flex flex-col items-center justify-center gap-3">
                               <Box
                                 className={`w-12 h-12 ${
@@ -908,6 +910,17 @@ export default function Page() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">{item.date}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {item.quantity === 0 ? (
+                                <Link href={`/view/product-in?product=${encodeURIComponent(item.product_name)}`}>
+                                  <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+                                    Add Stock
+                                  </div>
+                                </Link>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
                           </tr>
                         ))
                       )}

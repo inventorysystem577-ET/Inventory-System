@@ -29,6 +29,7 @@ export default function Page() {
   const [clientName, setClientName] = useState("");
   const [price, setPrice] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("");
+  const computedTotalPrice = (Number(price) || 0) * (Number(quantity) || 0);
 
   const selectedItem = availableItems.find(
     (item) => item.name === selectedItemId,
@@ -36,6 +37,22 @@ export default function Page() {
   const availableStock = selectedItem?.quantity || 0;
   const maxQuantity = availableStock;
   const canAddParcelOut = availableStock > 0;
+
+  const aggregateAvailableItems = (rows) => {
+    const grouped = (rows || []).reduce((acc, row) => {
+      const key = row.name;
+      if (!key) return acc;
+      if (!acc[key]) {
+        acc[key] = { id: key, name: key, quantity: 0 };
+      }
+      acc[key].quantity += Number(row.quantity || 0);
+      return acc;
+    }, {});
+
+    return Object.values(grouped)
+      .filter((row) => row.quantity > 0)
+      .sort((a, b) => b.quantity - a.quantity);
+  };
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
@@ -45,7 +62,7 @@ export default function Page() {
       const outItems = await fetchParcelOutItems();
       setItems(outItems);
       const inItems = await fetchParcelItems();
-      setAvailableItems(inItems);
+      setAvailableItems(aggregateAvailableItems(inItems));
     };
 
     const now = new Date();
@@ -86,13 +103,13 @@ export default function Page() {
       timeAMPM,
       shipping_mode: shippingMode,
       client_name: clientName,
-      price,
+      price: computedTotalPrice,
     });
 
     if (!result || !result.newItem) return;
 
     setItems(result.updatedOut || []);
-    setAvailableItems(result.updatedIn || []);
+    setAvailableItems(aggregateAvailableItems(result.updatedIn || []));
 
     alert(
       `✅ Successfully created Parcel Out!\n` +
@@ -382,6 +399,13 @@ export default function Page() {
                         : "border-[#D1D5DB] focus:ring-[#EA580C] focus:border-[#EA580C] bg-white text-black"
                     }`}
                   />
+                  <p
+                    className={`text-xs mt-1 ${
+                      darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                    }`}
+                  >
+                    Display Price: ₱{computedTotalPrice.toLocaleString()}
+                  </p>
                 </div>
                 <div className="flex flex-col">
                   <label
@@ -602,7 +626,7 @@ export default function Page() {
                             }`}
                           >
                             {item.price !== null && item.price !== undefined
-                              ? Number(item.price).toFixed(2)
+                              ? `₱${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : "-"}
                           </td>
                         </tr>
