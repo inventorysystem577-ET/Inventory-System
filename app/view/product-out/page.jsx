@@ -540,7 +540,7 @@ export default function ProductOutPage() {
                   : "bg-white border-[#E5E7EB]"
               }`}
             >
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead
                   className={
                     darkMode
@@ -560,7 +560,7 @@ export default function ProductOutPage() {
                     ].map((head) => (
                       <th
                         key={head}
-                        className="p-3 text-left text-xs font-semibold uppercase tracking-wider"
+                        className="p-3 text-center text-xs font-semibold uppercase tracking-wider"
                       >
                         {head}
                       </th>
@@ -597,8 +597,8 @@ export default function ProductOutPage() {
                             : "border-[#E5E7EB] hover:bg-[#F3F4F6]"
                         } transition-colors`}
                       >
-                        <td className="p-3 font-medium">{item.product_name}</td>
-                        <td className="p-3">
+                        <td className="p-3 text-center align-middle font-medium">{item.product_name}</td>
+                        <td className="p-3 text-center align-middle">
                           <span
                             className={`px-3 py-1 rounded-lg font-bold text-xs ${
                               darkMode
@@ -609,21 +609,21 @@ export default function ProductOutPage() {
                             {item.quantity}
                           </span>
                         </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
+                        <td className="p-3 text-center align-middle">
+                          <div className="flex items-center justify-center gap-2">
                             <Calendar className="w-4 h-4 opacity-50" />
                             {item.date}
                           </div>
                         </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
+                        <td className="p-3 text-center align-middle">
+                          <div className="flex items-center justify-center gap-2">
                             <Clock className="w-4 h-4 opacity-50" />
                             {formatTo12Hour(item.time_out)}
                           </div>
                         </td>
-                        <td className="p-3">{item.shipping_mode || "-"}</td>
-                        <td className="p-3">{item.client_name || "-"}</td>
-                        <td className="p-3">
+                        <td className="p-3 text-center align-middle">{item.shipping_mode || "-"}</td>
+                        <td className="p-3 text-center align-middle">{item.client_name || "-"}</td>
+                        <td className="p-3 text-center align-middle">
                           {item.price !== null && item.price !== undefined
                             ? Number(item.price).toFixed(2)
                             : "-"}

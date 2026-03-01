@@ -491,7 +491,7 @@ export default function Page() {
               }`}
             >
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
+                <table className="w-full min-w-[600px] table-fixed">
                   <thead
                     className={`${
                       darkMode
@@ -512,7 +512,7 @@ export default function Page() {
                         (head) => (
                           <th
                             key={head}
-                            className="p-3 sm:p-4 text-left text-xs sm:text-sm font-semibold whitespace-nowrap"
+                            className="p-3 sm:p-4 text-center text-xs sm:text-sm font-semibold whitespace-nowrap"
                           >
                             {head}
                           </th>
@@ -557,13 +557,13 @@ export default function Page() {
                           }`}
                           style={{ animationDelay: `${index * 0.03}s` }}
                         >
-                          <td className="p-3 sm:p-4 font-semibold text-sm sm:text-base whitespace-nowrap">
+                          <td className="p-3 sm:p-4 font-semibold text-sm sm:text-base whitespace-nowrap text-center align-middle">
                             {item.name}
                           </td>
-                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap text-center align-middle">
                             {item.date}
                           </td>
-                          <td className="p-3 sm:p-4">
+                          <td className="p-3 sm:p-4 text-center align-middle">
                             <span
                               className={`px-2 sm:px-3 py-1 rounded-lg font-bold text-xs sm:text-sm ${
                                 darkMode
@@ -574,19 +574,19 @@ export default function Page() {
                               {item.quantity}
                             </span>
                           </td>
-                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
-                            <div className="flex items-center gap-2">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap text-center align-middle">
+                            <div className="flex items-center justify-center gap-2">
                               <Clock size={14} />
                               {formatTo12Hour(item.timeIn)}
                             </div>
                           </td>
-                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap text-center align-middle">
                             {item.shipping_mode || "-"}
                           </td>
-                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap text-center align-middle">
                             {item.client_name || "-"}
                           </td>
-                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap">
+                          <td className="p-3 sm:p-4 text-sm sm:text-base whitespace-nowrap text-center align-middle">
                             {item.price !== null && item.price !== undefined
                               ? `₱${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               : "-"}

@@ -720,7 +720,7 @@ export default function page() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead
                       className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
                     >
@@ -728,7 +728,7 @@ export default function page() {
                         {["Item", "Stock", "Status"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
                               darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
@@ -764,11 +764,11 @@ export default function page() {
                                 : "hover:bg-gray-50"
                             }`}
                           >
-                            <td className="px-4 py-3 text-sm">{item.name}</td>
-                            <td className="px-4 py-3 text-sm">
+                            <td className="px-4 py-3 text-sm text-center align-middle">{item.name}</td>
+                            <td className="px-4 py-3 text-sm text-center align-middle">
                               {item.quantity}
                             </td>
-                            <td className="px-4 py-3 text-sm">
+                            <td className="px-4 py-3 text-sm text-center align-middle">
                               <span
                                 className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
                                   item.quantity,
@@ -810,7 +810,7 @@ export default function page() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead
                       className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
                     >
@@ -818,7 +818,7 @@ export default function page() {
                         {["Product", "Stock", "Status"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
                               darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
@@ -854,13 +854,13 @@ export default function page() {
                                 : "hover:bg-gray-50"
                             }`}
                           >
-                            <td className="px-4 py-3 text-sm">
+                            <td className="px-4 py-3 text-sm text-center align-middle">
                               {item.product_name}
                             </td>
-                            <td className="px-4 py-3 text-sm">
+                            <td className="px-4 py-3 text-sm text-center align-middle">
                               {item.quantity}
                             </td>
-                            <td className="px-4 py-3 text-sm">
+                            <td className="px-4 py-3 text-sm text-center align-middle">
                               <span
                                 className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
                                   item.quantity,
@@ -898,7 +898,7 @@ export default function page() {
               >
                 <h3 className="text-lg font-semibold mb-4">Recent Parcel IN</h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead
                       className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
                     >
@@ -906,7 +906,7 @@ export default function page() {
                         {["Item", "Qty", "Date"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
                               darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
@@ -927,9 +927,9 @@ export default function page() {
                             darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
                           }`}
                         >
-                          <td className="px-4 py-3 text-sm">{item.name}</td>
-                          <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.name}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.date}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -949,7 +949,7 @@ export default function page() {
                   Recent Parcel OUT
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead
                       className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
                     >
@@ -957,7 +957,7 @@ export default function page() {
                         {["Item", "Qty", "Date"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
                               darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
@@ -978,9 +978,9 @@ export default function page() {
                             darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
                           }`}
                         >
-                          <td className="px-4 py-3 text-sm">{item.name}</td>
-                          <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.name}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.date}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1003,7 +1003,7 @@ export default function page() {
                   Recent Product IN
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead
                       className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
                     >
@@ -1011,7 +1011,7 @@ export default function page() {
                         {["Product", "Qty", "Date"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
                               darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
@@ -1032,11 +1032,11 @@ export default function page() {
                             darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
                           }`}
                         >
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-sm text-center align-middle">
                             {item.product_name}
                           </td>
-                          <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.date}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1056,7 +1056,7 @@ export default function page() {
                   Recent Product OUT
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead
                       className={`${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
                     >
@@ -1064,7 +1064,7 @@ export default function page() {
                         {["Product", "Qty", "Date"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-left text-xs font-medium uppercase tracking-wider ${
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
                               darkMode ? "text-gray-400" : "text-gray-700"
                             }`}
                           >
@@ -1085,11 +1085,11 @@ export default function page() {
                             darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
                           }`}
                         >
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-sm text-center align-middle">
                             {item.product_name}
                           </td>
-                          <td className="px-4 py-3 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm">{item.date}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">{item.date}</td>
                         </tr>
                       ))}
                     </tbody>

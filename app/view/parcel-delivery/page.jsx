@@ -503,7 +503,7 @@ export default function Page() {
               }`}
             >
               <div className="overflow-y-auto overflow-x-auto max-h-[600px]">
-                <table className="w-full min-w-[1050px]">
+                <table className="w-full min-w-[1050px] table-fixed">
                   <thead
                     className={`sticky top-0 z-10 ${
                       darkMode
@@ -524,7 +524,7 @@ export default function Page() {
                         (head) => (
                           <th
                             key={head}
-                            className={`px-4 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-center text-xs sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap ${
                               darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                             }`}
                           >
@@ -572,20 +572,20 @@ export default function Page() {
                           style={{ animationDelay: `${index * 0.1}s` }}
                         >
                           <td
-                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap font-semibold text-sm sm:text-base ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center align-middle font-semibold text-sm sm:text-base ${
                               darkMode ? "text-white" : "text-[#111827]"
                             }`}
                           >
                             {item.name}
                           </td>
                           <td
-                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center align-middle text-sm sm:text-base ${
                               darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                             }`}
                           >
                             {item.date}
                           </td>
-                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center align-middle">
                             <span
                               className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold ${
                                 darkMode
@@ -597,31 +597,31 @@ export default function Page() {
                             </span>
                           </td>
                           <td
-                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm sm:text-base ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center align-middle text-sm sm:text-base ${
                               darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                             }`}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center gap-2">
                               <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-50" />
                               {formatTo12Hour(item.timeOut)}
                             </div>
                           </td>
                           <td
-                            className={`px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-center align-middle text-sm sm:text-base ${
                               darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                             }`}
                           >
                             {item.shipping_mode || "-"}
                           </td>
                           <td
-                            className={`px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-center align-middle text-sm sm:text-base ${
                               darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                             }`}
                           >
                             {item.client_name || "-"}
                           </td>
                           <td
-                            className={`px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-center align-middle text-sm sm:text-base ${
                               darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
                             }`}
                           >
