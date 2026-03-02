@@ -173,7 +173,7 @@ export default function page() {
 
   const handleCardClick = (route, status = null, type = null) => {
     if (status && type) {
-      router.push(`${route}?status=${status}&type=${type}`);
+      router.push(`${route}?status=${status}&type=${type}&focus=${type}-table`);
     } else if (status) {
       router.push(`${route}?status=${status}`);
     } else {

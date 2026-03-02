@@ -4,6 +4,7 @@ import { X, Menu, Sun, Moon } from "lucide-react";
 import { useAuth } from "../hook/useAuth";
 import { getDisplayName, getAvatarLetter } from "../utils/userHelper";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // Import Animate.css
 import "animate.css";
@@ -15,6 +16,7 @@ export default function TopNavbar({
   setDarkMode,
 }) {
   const { userEmail, displayName, loading } = useAuth();
+  const router = useRouter();
 
   const displayedName = getDisplayName(null, userEmail);
   const avatarLetter = getAvatarLetter(null, userEmail);
@@ -56,11 +58,18 @@ export default function TopNavbar({
             </button>
 
             {/* Logo - changes based on dark mode */}
-            <img
-              src={darkMode ? "/logo.png" : "/logo2.png"}
-              alt="logo"
-              className="h-8 sm:h-10 w-auto animate__animated animate__fadeIn animate__slow"
-            />
+            <button
+              type="button"
+              onClick={() => router.push("/view/dashboard")}
+              className="rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/70"
+              aria-label="Go to dashboard"
+            >
+              <img
+                src={darkMode ? "/logo.png" : "/logo2.png"}
+                alt="logo"
+                className="h-8 sm:h-10 w-auto animate__animated animate__fadeIn animate__slow"
+              />
+            </button>
           </div>
 
           {/* Right side - User Profile + Dark Mode Toggle */}

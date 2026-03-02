@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import TopNavbar from "../../components/TopNavbar";
 import Sidebar from "../../components/Sidebar";
+import { useSearchParams } from "next/navigation";
 import {
   PackageCheck,
   Plus,
@@ -22,6 +23,9 @@ import AuthGuard from "../../components/AuthGuard";
 import { products } from "../../utils/productsData";
 
 export default function Page() {
+  const searchParams = useSearchParams();
+  const itemParam = searchParams.get("item");
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -40,6 +44,12 @@ export default function Page() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+
+  useEffect(() => {
+    if (itemParam) {
+      setName(itemParam);
+    }
+  }, [itemParam]);
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");

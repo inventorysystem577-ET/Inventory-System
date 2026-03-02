@@ -3,7 +3,7 @@
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import TopNavbar from "../../components/TopNavbar";
@@ -26,6 +26,7 @@ export default function Page() {
   const searchParams = useSearchParams();
   const statusParam = searchParams.get("status");
   const typeParam = searchParams.get("type"); // 'parcel' or 'product'
+  const focusParam = searchParams.get("focus");
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("product-inventory");
@@ -42,6 +43,10 @@ export default function Page() {
   const [filterProductStatus, setFilterProductStatus] = useState(
     statusParam && typeParam === "product" ? statusParam : "all",
   );
+  const [focusedSection, setFocusedSection] = useState(null);
+
+  const parcelTableRef = useRef(null);
+  const productTableRef = useRef(null);
 
   // Helper to get stock status
   const getStockStatus = (quantity) => {
@@ -117,10 +122,41 @@ export default function Page() {
   useEffect(() => {
     if (statusParam && typeParam === "parcel") {
       setFilterParcelStatus(statusParam);
+      setFilterProductStatus("all");
     } else if (statusParam && typeParam === "product") {
       setFilterProductStatus(statusParam);
+      setFilterParcelStatus("all");
     }
   }, [statusParam, typeParam]);
+
+  // Scroll and highlight the relevant inventory section when navigated from dashboard cards
+  useEffect(() => {
+    const target =
+      focusParam === "product-table" || typeParam === "product"
+        ? "product"
+        : focusParam === "parcel-table" || typeParam === "parcel"
+          ? "parcel"
+          : null;
+
+    if (!target) return;
+
+    const sectionRef = target === "product" ? productTableRef : parcelTableRef;
+    if (!sectionRef.current) return;
+
+    const scrollTimer = setTimeout(() => {
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setFocusedSection(target);
+    }, 120);
+
+    const clearTimer = setTimeout(() => {
+      setFocusedSection(null);
+    }, 2400);
+
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(clearTimer);
+    };
+  }, [focusParam, typeParam, parcelItems.length, productItems.length]);
 
   // Filter parcel items based on selected status
   const filteredParcelItems = parcelItems.filter((item) => {
@@ -522,7 +558,12 @@ export default function Page() {
 
               {/* Parcel Items Table */}
               <div
+                ref={parcelTableRef}
                 className={`rounded-xl shadow-lg overflow-hidden border ${
+                  focusedSection === "parcel"
+                    ? "ring-2 ring-[#1e40af] ring-offset-2 ring-offset-transparent"
+                    : ""
+                } ${
                   darkMode
                     ? "bg-[#1F2937] border-[#374151]"
                     : "bg-white border-[#E5E7EB]"
@@ -543,6 +584,7 @@ export default function Page() {
                           "Current Stock",
                           "Status",
                           "Date Added",
+                          "Actions",
                         ].map((head) => (
                           <th
                             key={head}
@@ -560,7 +602,7 @@ export default function Page() {
                     >
                       {filteredParcelItems.length === 0 ? (
                         <tr>
-                          <td colSpan="4" className="px-4 py-12 text-center">
+                          <td colSpan="5" className="px-4 py-12 text-center">
                             <div className="flex flex-col items-center justify-center gap-3">
                               <Package
                                 className={`w-12 h-12 ${
@@ -619,6 +661,19 @@ export default function Page() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">{item.date}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {item.quantity === 0 ? (
+                                <Link
+                                  href={`/view/parcel-shipped?item=${encodeURIComponent(item.name)}`}
+                                >
+                                  <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer w-fit">
+                                    Add Stock
+                                  </div>
+                                </Link>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
                           </tr>
                         ))
                       )}
@@ -812,7 +867,12 @@ export default function Page() {
 
               {/* Product Items Table */}
               <div
+                ref={productTableRef}
                 className={`rounded-xl shadow-lg overflow-hidden border ${
+                  focusedSection === "product"
+                    ? "ring-2 ring-[#7c3aed] ring-offset-2 ring-offset-transparent"
+                    : ""
+                } ${
                   darkMode
                     ? "bg-[#1F2937] border-[#374151]"
                     : "bg-white border-[#E5E7EB]"
