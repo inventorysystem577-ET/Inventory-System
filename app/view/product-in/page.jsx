@@ -39,6 +39,7 @@ export default function ProductInPage() {
 
   const [items, setItems] = useState([]);
   const [stockInItems, setStockInItems] = useState([]);
+  const [productSuggestions, setProductSuggestions] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState(0);
@@ -55,13 +56,13 @@ export default function ProductInPage() {
 
   useEffect(() => {
     if (selectedProduct) {
-      const product = products.find((p) => p.name === selectedProduct);
-      if (product) {
-        const totalStock = items
-          .filter((item) => item.product_name === selectedProduct)
-          .reduce((acc, item) => acc + item.quantity, 0);
-        setCurrentStock(totalStock);
-      }
+      const totalStock = items
+        .filter(
+          (item) =>
+            normalizeName(item.product_name) === normalizeName(selectedProduct),
+        )
+        .reduce((acc, item) => acc + Number(item.quantity || 0), 0);
+      setCurrentStock(totalStock);
     } else {
       setCurrentStock(0);
       setPrice(0);
@@ -86,6 +87,12 @@ export default function ProductInPage() {
   const [availableComponents, setAvailableComponents] = useState([]);
   const [missingComponentsForSelected, setMissingComponentsForSelected] =
     useState([]);
+  const [showCustomComponentsModal, setShowCustomComponentsModal] =
+    useState(false);
+  const [customComponents, setCustomComponents] = useState([
+    { name: "", quantity: "" },
+  ]);
+  const [customComponentsError, setCustomComponentsError] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -157,11 +164,21 @@ export default function ProductInPage() {
 
   const loadItems = async () => {
     const data = await fetchProductInController();
-    const sanitizedData = data.map((item) => ({
-      ...item,
-      components: Array.isArray(item.components) ? item.components : [],
-    }));
+    const sanitizedData = data
+      .map((item) => ({
+        ...item,
+        quantity: Number(item.quantity || 0),
+        components: Array.isArray(item.components) ? item.components : [],
+      }))
+      .filter((item) => item.quantity > 0);
     setItems(sanitizedData.sort((a, b) => b.id - a.id));
+
+    const existingNames = sanitizedData
+      .map((item) => item.product_name)
+      .filter(Boolean);
+    const predefinedNames = products.map((product) => product.name).filter(Boolean);
+    const unique = Array.from(new Set([...predefinedNames, ...existingNames])).sort();
+    setProductSuggestions(unique);
   };
 
   const loadStockInItems = async () => {
@@ -171,6 +188,16 @@ export default function ProductInPage() {
 
   useEffect(() => {
     if (!selectedProduct) return;
+    const selected = products.find(
+      (p) => normalizeName(p.name) === normalizeName(selectedProduct),
+    );
+    if (!selected) {
+      setAvailableComponents([]);
+      setMissingComponentsForSelected([]);
+      setShowComponentStockModal(false);
+      return;
+    }
+
     const computed = computeComponentAvailability(
       selectedProduct,
       qty,
@@ -181,94 +208,93 @@ export default function ProductInPage() {
     setShowComponentStockModal(true);
   }, [selectedProduct, qty, stockInItems]);
 
+  useEffect(() => {
+    const selected = products.find(
+      (p) => normalizeName(p.name) === normalizeName(selectedProduct),
+    );
+    if (selected) {
+      setShowCustomComponentsModal(false);
+      setCustomComponentsError("");
+    }
+  }, [selectedProduct]);
+
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!selectedProduct || !qty || !date) return;
 
     const quantityToAdd = parseInt(qty);
+    const normalizedSelectedProduct = selectedProduct.trim();
     const product = products.find(
       (p) =>
-        p.name.toLowerCase().trim() === selectedProduct.toLowerCase().trim(),
+        normalizeName(p.name) === normalizeName(normalizedSelectedProduct),
     );
-    if (!product) return;
 
-    const predefinedComponents = product.components.map((c) => ({
+    const time_in = `${timeHour}:${timeMinute} ${timeAMPM}`;
+    if (!product) {
+      setCustomComponentsError("");
+      setShowCustomComponentsModal(true);
+      return;
+    }
+
+    const components = product.components.map((c) => ({
       name: c.name,
       quantity: c.baseQty * quantityToAdd,
     }));
-    const components = predefinedComponents;
-
-    const time_in = `${timeHour}:${timeMinute} ${timeAMPM}`;
-    setErrorBar("");
-    setSuccessBar("");
-    setAlternativeRequest(null);
-
-    const result = await handleAddProductIn(
-      selectedProduct,
+    await submitProductIn({
+      productName: normalizedSelectedProduct,
       quantityToAdd,
-      date,
-      time_in,
+      dateValue: date,
+      timeInValue: time_in,
       components,
-      { price: totalPrice },
+    });
+  };
+
+  const handleAddCustomComponentRow = () => {
+    setCustomComponents((prev) => [...prev, { name: "", quantity: "" }]);
+  };
+
+  const handleRemoveCustomComponentRow = (indexToRemove) => {
+    setCustomComponents((prev) =>
+      prev.filter((_, index) => index !== indexToRemove),
     );
+  };
 
-    if (!result?.success) {
-      if (result?.requiresAlternativeApproval) {
-        setAlternativeRequest({
-          product_name: selectedProduct,
-          quantity: quantityToAdd,
-          date,
-          time_in,
-          components,
-          alternatives: result.alternativeOptions || [],
-        });
-        return;
-      }
+  const handleCustomComponentChange = (indexToUpdate, field, value) => {
+    setCustomComponents((prev) =>
+      prev.map((component, index) =>
+        index === indexToUpdate
+          ? { ...component, [field]: value }
+          : component,
+      ),
+    );
+  };
 
-      if (result?.missingComponents?.length > 0) {
-        setMissing(result.missingComponents);
-        setShowMissingComponentsModal(true);
-      }
+  const handleSubmitCustomProduct = async () => {
+    if (!selectedProduct || !qty || !date) {
+      setCustomComponentsError("Fill all required Product In fields first.");
+      return;
+    }
 
-      const missingText =
-        result?.missingComponents?.length > 0
-          ? ` Missing: ${result.missingComponents
-              .map(
-                (item) =>
-                  `${item.component} (${item.available}/${item.needed})`,
-              )
-              .join(", ")}`
-          : "";
+    const quantityToAdd = parseInt(qty);
+    const normalizedSelectedProduct = selectedProduct.trim();
+    const time_in = `${timeHour}:${timeMinute} ${timeAMPM}`;
+    const components = sanitizeCustomComponents();
 
-      setErrorBar(
-        `${result?.message || "Unable to add Product In."}${missingText}`,
+    if (components.length === 0) {
+      setCustomComponentsError(
+        "At least one valid component is required for custom products.",
       );
       return;
     }
 
-    const altText =
-      result.usedAlternatives?.length > 0
-        ? ` Used alternatives: ${result.usedAlternatives
-            .map(
-              (item) =>
-                `${item.alternative} for ${item.forComponent} (${item.quantity})`,
-            )
-            .join(", ")}`
-        : "";
-    setSuccessBar(
-      `Product IN added and components deducted from Stock In.${altText}`,
-    );
-
-    await loadItems();
-    await loadStockInItems();
-
-    setSelectedProduct("");
-    setQty(1);
-    setPrice(0);
-    setDate("");
-    setTimeHour("1");
-    setTimeMinute("00");
-    setTimeAMPM("AM");
+    setCustomComponentsError("");
+    await submitProductIn({
+      productName: normalizedSelectedProduct,
+      quantityToAdd,
+      dateValue: date,
+      timeInValue: time_in,
+      components,
+    });
   };
 
   const handleUseAlternatives = async () => {
@@ -420,8 +446,98 @@ export default function ProductInPage() {
     return `${hour}:${minute} ${ampm}`;
   };
 
+  const sanitizeCustomComponents = () =>
+    (customComponents || [])
+      .map((component) => ({
+        name: (component?.name || "").trim(),
+        quantity: Number(component?.quantity),
+      }))
+      .filter((component) => component.name && component.quantity > 0);
+
+  const submitProductIn = async ({
+    productName,
+    quantityToAdd,
+    dateValue,
+    timeInValue,
+    components,
+  }) => {
+    setErrorBar("");
+    setSuccessBar("");
+    setAlternativeRequest(null);
+
+    const result = await handleAddProductIn(
+      productName,
+      quantityToAdd,
+      dateValue,
+      timeInValue,
+      components,
+      { price: totalPrice },
+    );
+
+    if (!result?.success) {
+      if (result?.requiresAlternativeApproval) {
+        setAlternativeRequest({
+          product_name: productName,
+          quantity: quantityToAdd,
+          date: dateValue,
+          time_in: timeInValue,
+          components,
+          alternatives: result.alternativeOptions || [],
+        });
+        return;
+      }
+
+      if (result?.missingComponents?.length > 0) {
+        setMissing(result.missingComponents);
+        setShowMissingComponentsModal(true);
+      }
+
+      const missingText =
+        result?.missingComponents?.length > 0
+          ? ` Missing: ${result.missingComponents
+              .map(
+                (item) =>
+                  `${item.component} (${item.available}/${item.needed})`,
+              )
+              .join(", ")}`
+          : "";
+
+      setErrorBar(
+        `${result?.message || "Unable to add Product In."}${missingText}`,
+      );
+      return;
+    }
+
+    const altText =
+      result.usedAlternatives?.length > 0
+        ? ` Used alternatives: ${result.usedAlternatives
+            .map(
+              (item) =>
+                `${item.alternative} for ${item.forComponent} (${item.quantity})`,
+            )
+            .join(", ")}`
+        : "";
+    setSuccessBar(
+      `Product IN added and components deducted from Stock In.${altText}`,
+    );
+
+    await loadItems();
+    await loadStockInItems();
+
+    setSelectedProduct("");
+    setQty(1);
+    setPrice(0);
+    setDate("");
+    setTimeHour("1");
+    setTimeMinute("00");
+    setTimeAMPM("AM");
+    setCustomComponents([{ name: "", quantity: "" }]);
+    setCustomComponentsError("");
+    setShowCustomComponentsModal(false);
+  };
+
   const selectedProductConfig = products.find(
-    (p) => p.name === selectedProduct,
+    (p) => normalizeName(p.name) === normalizeName(selectedProduct),
   );
   const noDefinedComponents =
     (selectedProductConfig?.components || []).length === 0;
@@ -574,26 +690,27 @@ export default function ProductInPage() {
                   >
                     <Package className="w-4 h-4" /> Product Name
                   </label>
-                  <select
+                  <input
+                    type="text"
+                    placeholder="Type or select product"
                     value={selectedProduct}
                     onChange={(e) => {
                       setSelectedProduct(e.target.value);
                       setPrice(0);
                     }}
+                    list="product-in-suggestions"
                     className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
                       darkMode
                         ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
                         : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
                     }`}
                     required
-                  >
-                    <option value="">Select Product</option>
-                    {products.map((p) => (
-                      <option key={p.name} value={p.name}>
-                        {p.name}
-                      </option>
+                  />
+                  <datalist id="product-in-suggestions">
+                    {productSuggestions.map((suggestion) => (
+                      <option key={suggestion} value={suggestion} />
                     ))}
-                  </select>
+                  </datalist>
                   {selectedProduct && (
                     <p
                       className={`text-sm mt-2 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
@@ -959,6 +1076,135 @@ export default function ProductInPage() {
         onAddToStockIn={handleAddMissingToStockIn}
         isAdding={isAddingMissingStock}
       />
+      {showCustomComponentsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowCustomComponentsModal(false)}
+          ></div>
+          <div
+            className={`relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border shadow-2xl ${
+              darkMode
+                ? "bg-[#1F2937] border-[#374151] text-white"
+                : "bg-white border-[#E5E7EB] text-black"
+            }`}
+          >
+            <div
+              className={`p-4 border-b flex items-center justify-between ${
+                darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+              }`}
+            >
+              <h2 className="text-lg font-semibold">
+                Add Components for {selectedProduct}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowCustomComponentsModal(false)}
+                className={`px-3 py-1 rounded-lg text-sm ${
+                  darkMode
+                    ? "bg-[#374151] hover:bg-[#4B5563]"
+                    : "bg-[#F3F4F6] hover:bg-[#E5E7EB]"
+                }`}
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <p
+                className={`text-sm ${
+                  darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                }`}
+              >
+                Custom product detected. Add required components before submit.
+              </p>
+              {customComponentsError && (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    darkMode
+                      ? "bg-red-900/20 border-red-800 text-red-300"
+                      : "bg-red-50 border-red-200 text-red-700"
+                  }`}
+                >
+                  {customComponentsError}
+                </div>
+              )}
+              <div className="space-y-2">
+                {customComponents.map((component, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2">
+                    <input
+                      type="text"
+                      value={component.name}
+                      onChange={(e) =>
+                        handleCustomComponentChange(index, "name", e.target.value)
+                      }
+                      placeholder="Component name"
+                      className={`col-span-7 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 transition-all ${
+                        darkMode
+                          ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                          : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                      }`}
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      value={component.quantity}
+                      onChange={(e) =>
+                        handleCustomComponentChange(
+                          index,
+                          "quantity",
+                          e.target.value,
+                        )
+                      }
+                      placeholder="Qty"
+                      className={`col-span-3 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 transition-all ${
+                        darkMode
+                          ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                          : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCustomComponentRow(index)}
+                      disabled={customComponents.length === 1}
+                      className={`col-span-2 rounded-lg px-2 py-2 text-sm font-medium ${
+                        customComponents.length === 1
+                          ? darkMode
+                            ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                            : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
+                          : darkMode
+                            ? "bg-red-900/30 text-red-200 hover:bg-red-900/40"
+                            : "bg-red-100 text-red-700 hover:bg-red-200"
+                      }`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={handleAddCustomComponentRow}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    darkMode
+                      ? "bg-[#374151] hover:bg-[#4B5563]"
+                      : "bg-[#F3F4F6] hover:bg-[#E5E7EB]"
+                  }`}
+                >
+                  + Add Component
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitCustomProduct}
+                  className="bg-[#1E3A8A] hover:bg-[#1D4ED8] text-white px-4 py-2 rounded-lg font-medium"
+                >
+                  Save and Submit Product
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showComponentStockModal && selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div

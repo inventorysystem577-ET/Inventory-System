@@ -222,7 +222,7 @@ export default function page() {
 
         <div
           className={`transition-all duration-300 ${
-            sidebarOpen ? "ml-64" : "ml-0"
+            sidebarOpen ? "lg:ml-64" : "ml-0"
           } pt-16`}
         >
           <div className="p-4 sm:p-6 lg:p-8">

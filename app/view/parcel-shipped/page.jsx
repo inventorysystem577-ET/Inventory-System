@@ -72,6 +72,7 @@ export default function Page() {
   const loadItems = async () => {
     const data = await fetchParcelItems();
     const sortedData = data
+      .map((item) => ({ ...item, quantity: Number(item.quantity || 0) }))
       .filter((item) => item.quantity > 0)
       .sort((a, b) => b.quantity - a.quantity);
     setItems(sortedData);
@@ -115,6 +116,7 @@ export default function Page() {
 
     setItems(
       result.items
+        .map((item) => ({ ...item, quantity: Number(item.quantity || 0) }))
         .filter((item) => item.quantity > 0)
         .sort((a, b) => b.quantity - a.quantity),
     );

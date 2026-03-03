@@ -19,7 +19,13 @@ import Link from "next/link";
 import "animate.css";
 
 // Import controllers
-import { fetchProductInController } from "../../controller/productController";
+import {
+  fetchProductInController,
+  clearProductInInventory,
+  clearProductOutHistory,
+} from "../../controller/productController";
+import { deleteAllParcelInItems } from "../../controller/parcelShipped";
+import { clearParcelOutHistory } from "../../controller/parcelDelivery";
 import { fetchParcelItems } from "../../utils/parcelShippedHelper";
 
 export default function Page() {
@@ -44,6 +50,9 @@ export default function Page() {
     statusParam && typeParam === "product" ? statusParam : "all",
   );
   const [focusedSection, setFocusedSection] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isProcessingExport, setIsProcessingExport] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const parcelTableRef = useRef(null);
   const productTableRef = useRef(null);
@@ -103,18 +112,17 @@ export default function Page() {
     return "bg-[#22C55E]";
   };
 
+  const loadItems = async () => {
+    const parcelData = await fetchParcelItems();
+    const productData = await fetchProductInController();
+
+    setParcelItems(parcelData || []);
+    setProductItems(productData || []);
+  };
+
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode");
     if (savedDarkMode !== null) setDarkMode(savedDarkMode === "true");
-
-    const loadItems = async () => {
-      const parcelData = await fetchParcelItems();
-      const productData = await fetchProductInController();
-
-      setParcelItems(parcelData || []);
-      setProductItems(productData || []);
-    };
-
     loadItems();
   }, []);
 
@@ -192,7 +200,7 @@ export default function Page() {
     available: productItems.filter((item) => item.quantity >= 10).length,
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = (parcelData = [], productData = []) => {
     const doc = new jsPDF();
 
     doc.setFontSize(18);
@@ -210,7 +218,7 @@ export default function Page() {
       "Status",
       "Date Added",
     ];
-    const parcelTableRows = filteredParcelItems.map((item) => [
+    const parcelTableRows = parcelData.map((item) => [
       item.name,
       `${item.quantity} units`,
       getStatusLabel(item.quantity),
@@ -237,7 +245,7 @@ export default function Page() {
       "Status",
       "Date Added",
     ];
-    const productTableRows = filteredProductItems.map((item) => [
+    const productTableRows = productData.map((item) => [
       item.product_name,
       `${item.quantity} units`,
       getStatusLabel(item.quantity),
@@ -254,6 +262,49 @@ export default function Page() {
     });
 
     doc.save("inventory-report.pdf");
+  };
+
+  const handleExportClick = () => {
+    setExportError("");
+    setShowExportModal(true);
+  };
+
+  const handleExportPdfOnly = () => {
+    const parcelSnapshot = [...parcelItems];
+    const productSnapshot = [...productItems];
+    exportToPDF(parcelSnapshot, productSnapshot);
+    setShowExportModal(false);
+  };
+
+  const handleExportDeleteAndSave = async () => {
+    setIsProcessingExport(true);
+    setExportError("");
+
+    const parcelSnapshot = [...parcelItems];
+    const productSnapshot = [...productItems];
+    exportToPDF(parcelSnapshot, productSnapshot);
+
+    const [parcelInResult, productInResult, parcelOutResult, productOutResult] =
+      await Promise.all([
+      deleteAllParcelInItems(),
+      clearProductInInventory(),
+      clearParcelOutHistory(),
+      clearProductOutHistory(),
+    ]);
+
+    const hasFailure = [parcelInResult, productInResult, parcelOutResult, productOutResult]
+      .some((result) => Boolean(result?.error) || result?.success === false);
+
+    if (hasFailure) {
+      setExportError("PDF saved, but failed to delete some inventory records.");
+      setIsProcessingExport(false);
+      return;
+    }
+
+    setParcelItems([]);
+    setProductItems([]);
+    setShowExportModal(false);
+    setIsProcessingExport(false);
   };
 
   return (
@@ -283,7 +334,7 @@ export default function Page() {
         {/* Main Content */}
         <div
           className={`transition-all duration-300 ${
-            sidebarOpen ? "ml-64" : "ml-0"
+            sidebarOpen ? "lg:ml-64" : "ml-0"
           } pt-16`}
         >
           <div className="p-4 sm:p-6 lg:p-8">
@@ -304,10 +355,10 @@ export default function Page() {
 
               {/* Export Button */}
               <button
-                onClick={exportToPDF}
+                onClick={handleExportClick}
                 className="bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white px-6 py-3 rounded-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 text-sm font-medium"
               >
-                📄 Export as PDF
+                Export as PDF
               </button>
             </div>
 
@@ -636,14 +687,16 @@ export default function Page() {
                                 : "hover:bg-[#F9FAFB]"
                             }`}
                           >
-                            <td className="px-4 py-3 text-sm font-medium">
-                              <div className="flex items-center gap-2">
+                            <td className="px-4 py-3 text-sm font-medium align-top">
+                              <div className="flex items-start gap-2 min-w-0">
                                 <div
                                   className={`w-2 h-2 rounded-full ${getIndicatorColor(
                                     item.quantity,
                                   )}`}
                                 />
-                                {item.name}
+                                <span className="break-words whitespace-normal">
+                                  {item.name}
+                                </span>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-sm">
@@ -945,14 +998,16 @@ export default function Page() {
                                 : "hover:bg-[#F9FAFB]"
                             }`}
                           >
-                            <td className="px-4 py-3 text-sm font-medium">
-                              <div className="flex items-center gap-2">
+                            <td className="px-4 py-3 text-sm font-medium align-top">
+                              <div className="flex items-start gap-2 min-w-0">
                                 <div
                                   className={`w-2 h-2 rounded-full ${getIndicatorColor(
                                     item.quantity,
                                   )}`}
                                 />
-                                {item.product_name}
+                                <span className="break-words whitespace-normal">
+                                  {item.product_name}
+                                </span>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-sm">
@@ -991,7 +1046,71 @@ export default function Page() {
             </div>
           </div>
         </div>
+        {showExportModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => !isProcessingExport && setShowExportModal(false)}
+            />
+            <div
+              className={`relative z-10 w-full max-w-md rounded-xl border shadow-2xl p-5 ${
+                darkMode
+                  ? "bg-[#1F2937] border-[#374151] text-white"
+                  : "bg-white border-[#E5E7EB] text-black"
+              }`}
+            >
+              <h3 className="text-lg font-semibold mb-2">Export Inventory PDF</h3>
+              <p
+                className={`text-sm mb-4 ${
+                  darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                }`}
+              >
+                Delete all record in inventory then save PDF, or save PDF only?
+              </p>
+
+              {exportError && (
+                <div
+                  className={`mb-3 rounded-lg border px-3 py-2 text-sm ${
+                    darkMode
+                      ? "bg-red-900/20 border-red-800 text-red-300"
+                      : "bg-red-50 border-red-200 text-red-700"
+                  }`}
+                >
+                  {exportError}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportDeleteAndSave}
+                  disabled={isProcessingExport}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
+                    isProcessingExport
+                      ? "bg-gray-400 text-white cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700 text-white"
+                  }`}
+                >
+                  Delete Inventory + Save PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportPdfOnly}
+                  disabled={isProcessingExport}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
+                    isProcessingExport
+                      ? "bg-gray-400 text-white cursor-not-allowed"
+                      : "bg-[#1E40AF] hover:bg-[#1D4ED8] text-white"
+                  }`}
+                >
+                  Save PDF Only
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AuthGuard>
   );
 }
+

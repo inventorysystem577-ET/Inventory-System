@@ -52,3 +52,14 @@ export const updateParcelInItem = async (id, updates) => {
   if (error) return { error };
   return { data };
 };
+
+export const deleteAllParcelInItems = async () => {
+  const { data, error } = await supabase
+    .from("parcel_in")
+    .delete()
+    .not("id", "is", null)
+    .select("id");
+
+  if (error) return { error };
+  return { success: true, deletedCount: Array.isArray(data) ? data.length : 0 };
+};

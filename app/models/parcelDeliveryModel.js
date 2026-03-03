@@ -98,3 +98,14 @@ export const deleteParcelOutItem = async (id) => {
     .eq("id", id);
   return error ? { error } : { data };
 };
+
+export const deleteAllParcelOutItems = async () => {
+  const { data, error } = await supabase
+    .from("parcel_out")
+    .delete()
+    .not("id", "is", null)
+    .select("id");
+
+  if (error) return { success: false, error };
+  return { success: true, deletedCount: Array.isArray(data) ? data.length : 0 };
+};

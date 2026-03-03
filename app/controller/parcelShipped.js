@@ -3,6 +3,7 @@ import {
   getParcelInItems as modelGetParcelInItems,
   deleteParcelInItem as modelDeleteParcelInItem,
   updateParcelInItem as modelUpdateParcelInItem,
+  deleteAllParcelInItems as modelDeleteAllParcelInItems,
 } from "../models/parcelShippedModel";
 
 export const addParcelInItem = async (item) => {
@@ -19,4 +20,8 @@ export const deleteParcelInItem = async (id) => {
 
 export const updateParcelInItem = async (id, updates) => {
   return await modelUpdateParcelInItem(id, updates);
+};
+
+export const deleteAllParcelInItems = async () => {
+  return await modelDeleteAllParcelInItems();
 };

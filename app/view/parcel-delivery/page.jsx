@@ -131,6 +131,9 @@ export default function Page() {
   const filteredItems = selectedFilter
     ? items.filter((item) => item.name === selectedFilter)
     : items;
+  const filterOptions = Array.from(
+    new Set((items || []).map((item) => item.name).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b));
 
   return (
     <AuthGuard darkMode={darkMode}>
@@ -486,9 +489,9 @@ export default function Page() {
                 }`}
               >
                 <option value="">All Items</option>
-                {availableItems.map((item) => (
-                  <option key={item.id} value={item.name}>
-                    {item.name}
+                {filterOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
                   </option>
                 ))}
               </select>
@@ -572,7 +575,7 @@ export default function Page() {
                           style={{ animationDelay: `${index * 0.1}s` }}
                         >
                           <td
-                            className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center align-middle font-semibold text-sm sm:text-base ${
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-center align-middle font-semibold text-sm sm:text-base break-words whitespace-normal ${
                               darkMode ? "text-white" : "text-[#111827]"
                             }`}
                           >

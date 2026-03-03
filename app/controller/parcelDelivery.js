@@ -3,6 +3,7 @@ import {
   getParcelOutItems as modelGetParcelOutItems,
   updateParcelOutItem as modelUpdateParcelOutItem,
   deleteParcelOutItem as modelDeleteParcelOutItem,
+  deleteAllParcelOutItems as modelDeleteAllParcelOutItems,
 } from "../models/parcelDeliveryModel";
 
 export const addParcelOutItem = async (payload) => {
@@ -19,4 +20,8 @@ export const updateParcelOutItem = async (id, updates) => {
 
 export const deleteParcelOutItem = async (id) => {
   return await modelDeleteParcelOutItem(id);
+};
+
+export const clearParcelOutHistory = async () => {
+  return await modelDeleteAllParcelOutItems();
 };

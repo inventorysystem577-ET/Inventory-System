@@ -312,6 +312,20 @@ export const getProductIn = async () => {
   }));
 };
 
+export const deleteAllProductInItems = async () => {
+  const { data, error } = await supabase
+    .from("product_in")
+    .delete()
+    .not("id", "is", null)
+    .select("id");
+
+  if (error) {
+    return { success: false, error };
+  }
+
+  return { success: true, deletedCount: Array.isArray(data) ? data.length : 0 };
+};
+
 // Get specific product by name
 export const getProductInByName = async (product_name) => {
   const { data, error } = await supabase
@@ -472,4 +486,15 @@ export const getProductOut = async () => {
       ? item.components
       : JSON.parse(item.components || "[]"),
   }));
+};
+
+export const deleteAllProductOutItems = async () => {
+  const { data, error } = await supabase
+    .from("products_out")
+    .delete()
+    .not("id", "is", null)
+    .select("id");
+
+  if (error) return { success: false, error };
+  return { success: true, deletedCount: Array.isArray(data) ? data.length : 0 };
 };
