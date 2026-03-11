@@ -386,18 +386,26 @@ export default function Page() {
                 </p>
               </div>
 
-              {/* Export Button */}
-              <button
-                onClick={handleExportClick}
-                disabled={!isAdmin}
-                className={`px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  isAdmin
-                    ? "bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white hover:shadow-xl hover:scale-105 active:scale-95"
-                    : "bg-gray-400 text-white cursor-not-allowed"
-                }`}
-              >
-                Export as PDF
-              </button>
+              {/* Export Button - Admin Only */}
+              {isAdmin && (
+                <button
+                  onClick={handleExportClick}
+                  className="px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white hover:shadow-xl hover:scale-105 active:scale-95"
+                >
+                  Export as PDF
+                </button>
+              )}
+              {!isAdmin && (
+                <span
+                  className={`text-xs px-3 py-1.5 rounded-full ${
+                    darkMode
+                      ? "bg-yellow-900/20 text-yellow-400 border border-yellow-800"
+                      : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                  }`}
+                >
+                  View Only — Staff cannot export or delete records
+                </span>
+              )}
             </div>
 
             {/* Alert Banner for Critical Items */}
@@ -680,8 +688,8 @@ export default function Page() {
                     >
                       <tr>
                         {[
-                          "Item Name",
-                          "Product Code",
+                          "Product Code",  /* Changed to be the first; task 8 done. */  
+                          "Item Name", 
                           "SKU",
                           "Description",
                           "Stock Quantity",
@@ -1012,8 +1020,8 @@ export default function Page() {
                     >
                       <tr>
                         {[
+                          "Product Code", /* Changed to be the first; task 8 done. */                         
                           "Product Name",
-                          "Product Code",
                           "SKU",
                           "Description",
                           "Stock Quantity",

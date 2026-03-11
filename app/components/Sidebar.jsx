@@ -19,53 +19,44 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, darkMode }) {
   const { role } = useAuth();
   const isAdmin = isAdminRole(role);
 
-  const menuItems = isAdmin
-    ? [
-        {
-          id: "Dashboard",
-          label: "Dashboard",
-          icon: BarChart3,
-          path: "/view/dashboard",
-        },
-        {
-          id: "Product In",
-          label: "Product In",
-          icon: ArrowDownToLine,
-          path: "/view/product-in",
-        },
-        {
-          id: "Product Out",
-          label: "Product Out",
-          icon: ArrowUpFromLine,
-          path: "/view/product-out",
-        },
-        {
-          id: "Parcel Shipped",
-          label: "Components Stock In",
-          icon: Package,
-          path: "/view/parcel-shipped",
-        },
-        {
-          id: "Parcel Delivery",
-          label: "Components Stock Out",
-          icon: PackageOpen,
-          path: "/view/parcel-delivery",
-        },
-        {
-          id: "Inventory Stock",
-          label: "Inventory",
-          icon: Activity,
-          path: "/view/out-of-stock",
-        },
-      ]
-    : [
-        {
-          id: "Product In",
-          label: "Monitoring and Adding",
-          icon: ArrowDownToLine,
-          path: "/view/product-in",
-        },
-      ];
+  const menuItems = [
+    {
+      id: "Dashboard",
+      label: "Dashboard",
+      icon: BarChart3,
+      path: "/view/dashboard",
+    },
+    {
+      id: "Product In",
+      label: "Product In",
+      icon: ArrowDownToLine,
+      path: "/view/product-in",
+    },
+    {
+      id: "Product Out",
+      label: "Product Out",
+      icon: ArrowUpFromLine,
+      path: "/view/product-out",
+    },
+    {
+      id: "Parcel Shipped",
+      label: "Components Stock In",
+      icon: Package,
+      path: "/view/parcel-shipped",
+    },
+    {
+      id: "Parcel Delivery",
+      label: "Components Stock Out",
+      icon: PackageOpen,
+      path: "/view/parcel-delivery",
+    },
+    {
+      id: "Inventory Stock",
+      label: "Inventory",
+      icon: Activity,
+      path: "/view/out-of-stock",
+    },
+  ];
 
   const adminMenuItems = isAdmin
     ? [

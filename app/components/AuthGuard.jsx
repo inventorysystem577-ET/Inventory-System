@@ -5,6 +5,19 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../hook/useAuth";
 import { isAdminRole } from "../utils/roleHelper";
 
+// Pages staff can access (everything except admin panel)
+const STAFF_ALLOWED_PATHS = [
+  "/view/product-in",
+  "/view/product-out",
+  "/view/parcel-shipped",
+  "/view/parcel-delivery",
+  "/view/out-of-stock",
+  "/view/dashboard",
+];
+
+// Admin-only pages
+const ADMIN_ONLY_PATHS = ["/view/admin-panel"];
+
 /* ================= AUTH GUARD ================= */
 export default function AuthGuard({ children, darkMode = false }) {
   const { loading: authLoading, userEmail, role } = useAuth();
@@ -15,8 +28,14 @@ export default function AuthGuard({ children, darkMode = false }) {
   useEffect(() => {
     if (authLoading || !userEmail) return;
     if (isAdmin) return;
-    if (pathname !== "/view/product-in") {
-      router.replace("/view/product-in");
+    // Staff: block admin-only pages
+    if (ADMIN_ONLY_PATHS.includes(pathname)) {
+      router.replace("/view/dashboard");
+      return;
+    }
+    // Staff: allow listed pages, redirect others to dashboard
+    if (!STAFF_ALLOWED_PATHS.includes(pathname)) {
+      router.replace("/view/dashboard");
     }
   }, [authLoading, userEmail, isAdmin, pathname, router]);
 
@@ -39,7 +58,7 @@ export default function AuthGuard({ children, darkMode = false }) {
   }
 
   if (!userEmail) return null;
-  if (!isAdmin && pathname !== "/view/product-in") return null;
+  if (!isAdmin && ADMIN_ONLY_PATHS.includes(pathname)) return null;
 
   return <>{children}</>;
 }
