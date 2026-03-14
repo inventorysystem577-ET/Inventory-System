@@ -301,13 +301,6 @@ export default function Page() {
     setShowExportModal(false);
   };
 
-
-    setParcelItems([]);
-    setProductItems([]);
-    setShowExportModal(false);
-    setIsProcessingExport(false);
-  };
-
   return (
     <AuthGuard darkMode={darkMode}>
       <div
