@@ -21,12 +21,9 @@ import "animate.css";
 // Import controllers
 import {
   fetchProductInController,
-  fetchProductOutController,
   clearProductInInventory,
   clearProductOutHistory,
 } from "../../controller/productController";
-import { deleteAllParcelInItems } from "../../controller/parcelShipped";
-import { clearParcelOutHistory } from "../../controller/parcelDelivery";
 import { fetchParcelItems } from "../../utils/parcelShippedHelper";
 import { fetchParcelOutItems } from "../../utils/parcelOutHelper";
 import { useAuth } from "../../hook/useAuth";
@@ -37,7 +34,12 @@ import {
   buildProductCode,
   buildSku,
 } from "../../utils/inventoryMeta";
-import { CATEGORIES, CATEGORY_OPTIONS, getCategoryColor, getCategoryIcon } from "../../utils/categoryUtils";
+import {
+  CATEGORIES,
+  CATEGORY_OPTIONS,
+  getCategoryColor,
+  getCategoryIcon,
+} from "../../utils/categoryUtils";
 
 export default function Page() {
   const searchParams = useSearchParams();
@@ -169,7 +171,10 @@ export default function Page() {
     if (!sectionRef.current) return;
 
     const scrollTimer = setTimeout(() => {
-      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      sectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
       setFocusedSection(target);
     }, 120);
 
@@ -190,13 +195,20 @@ export default function Page() {
       getStockStatus(item.quantity) === filterParcelStatus;
     const categoryMatch =
       parcelCategoryFilter === "all" ||
-      (item.category || "").toLowerCase() === parcelCategoryFilter.toLowerCase();
+      (item.category || "").toLowerCase() ===
+        parcelCategoryFilter.toLowerCase();
     const keyword = parcelSearch.trim().toLowerCase();
     if (!keyword) return statusMatch && categoryMatch;
     const code = buildProductCode(item, "CMP").toLowerCase();
     const sku = buildSku(item).toLowerCase();
     const name = (item.name || "").toLowerCase();
-    return statusMatch && categoryMatch && (name.includes(keyword) || code.includes(keyword) || sku.includes(keyword));
+    return (
+      statusMatch &&
+      categoryMatch &&
+      (name.includes(keyword) ||
+        code.includes(keyword) ||
+        sku.includes(keyword))
+    );
   });
 
   // Filter product items based on selected status and category
@@ -206,13 +218,20 @@ export default function Page() {
       getStockStatus(item.quantity) === filterProductStatus;
     const categoryMatch =
       productCategoryFilter === "all" ||
-      (item.category || "").toLowerCase() === productCategoryFilter.toLowerCase();
+      (item.category || "").toLowerCase() ===
+        productCategoryFilter.toLowerCase();
     const keyword = productSearch.trim().toLowerCase();
     if (!keyword) return statusMatch && categoryMatch;
     const code = buildProductCode(item).toLowerCase();
     const sku = buildSku(item).toLowerCase();
     const name = (item.product_name || "").toLowerCase();
-    return statusMatch && categoryMatch && (name.includes(keyword) || code.includes(keyword) || sku.includes(keyword));
+    return (
+      statusMatch &&
+      categoryMatch &&
+      (name.includes(keyword) ||
+        code.includes(keyword) ||
+        sku.includes(keyword))
+    );
   });
 
   // Count parcel items by status
@@ -327,82 +346,22 @@ export default function Page() {
 
     const parcelSnapshot = [...parcelItems];
     const productSnapshot = [...productItems];
-
-    const [parcelOutSnapshot, productOutSnapshot] = await Promise.all([
-      fetchParcelOutItems(),
-      fetchProductOutController(),
-    ]);
-
-    const undoAction = {
-      version: 1,
-      action: "inventory-delete-all",
-      createdAt: new Date().toISOString(),
-      data: {
-        parcelIn: parcelSnapshot.map((item) => ({
-          item_name: item.name,
-          date: item.date,
-          quantity: item.quantity,
-          time_in: item.timeIn,
-          shipping_mode: item.shipping_mode || null,
-          client_name: item.client_name || null,
-          price: item.price ?? null,
-        })),
-        productIn: productSnapshot.map((item) => ({
-          product_name: item.product_name,
-          quantity: item.quantity,
-          date: item.date,
-          time_in: item.time_in,
-          components: item.components,
-          shipping_mode: item.shipping_mode || null,
-          client_name: item.client_name || null,
-          description: item.description || null,
-          price: item.price ?? null,
-        })),
-        parcelOut: (parcelOutSnapshot || []).map((item) => ({
-          item_name: item.name,
-          date: item.date,
-          quantity: item.quantity,
-          time_out: item.timeOut,
-          shipping_mode: item.shipping_mode || null,
-          client_name: item.client_name || null,
-          price: item.price ?? null,
-        })),
-        productOut: (productOutSnapshot || []).map((item) => ({
-          product_name: item.product_name,
-          quantity: item.quantity,
-          date: item.date,
-          time_out: item.time_out,
-          components: item.components,
-          shipping_mode: item.shipping_mode || null,
-          client_name: item.client_name || null,
-          description: item.description || null,
-          price: item.price ?? null,
-        })),
-      },
-    };
-
-    const saveUndoResult = saveAdminUndoAction(undoAction);
-    if (!saveUndoResult.success) {
-      setExportError(
-        "Unable to create undo snapshot (storage full). Deletion canceled.",
-      );
-      setIsProcessingExport(false);
-      return;
-    }
-
-    window.dispatchEvent(new Event("adminUndoUpdated"));
     exportToPDF(parcelSnapshot, productSnapshot);
 
     const [parcelInResult, productInResult, parcelOutResult, productOutResult] =
       await Promise.all([
-      deleteAllParcelInItems(),
-      clearProductInInventory(),
-      clearParcelOutHistory(),
-      clearProductOutHistory(),
-    ]);
+        deleteAllParcelInItems(),
+        clearProductInInventory(),
+        clearParcelOutHistory(),
+        clearProductOutHistory(),
+      ]);
 
-    const hasFailure = [parcelInResult, productInResult, parcelOutResult, productOutResult]
-      .some((result) => Boolean(result?.error) || result?.success === false);
+    const hasFailure = [
+      parcelInResult,
+      productInResult,
+      parcelOutResult,
+      productOutResult,
+    ].some((result) => Boolean(result?.error) || result?.success === false);
 
     if (hasFailure) {
       setExportError("PDF saved, but failed to delete some inventory records.");
@@ -867,7 +826,9 @@ export default function Page() {
                             <td className="px-4 py-3 text-sm">
                               {buildProductCode(item, "CMP")}
                             </td>
-                            <td className="px-4 py-3 text-sm">{buildSku(item)}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {buildSku(item)}
+                            </td>
                             <td className="px-4 py-3 text-sm">
                               {buildDescription(item) || "-"}
                             </td>
@@ -876,7 +837,7 @@ export default function Page() {
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getCategoryColor(item.category)}`}
                               >
                                 <span>{getCategoryIcon(item.category)}</span>
-                                {item.category || 'Uncategorized'}
+                                {item.category || "Uncategorized"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">
@@ -1244,7 +1205,9 @@ export default function Page() {
                             <td className="px-4 py-3 text-sm">
                               {buildProductCode(item)}
                             </td>
-                            <td className="px-4 py-3 text-sm">{buildSku(item)}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {buildSku(item)}
+                            </td>
                             <td className="px-4 py-3 text-sm">
                               {buildDescription(item) || "-"}
                             </td>
@@ -1253,7 +1216,7 @@ export default function Page() {
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getCategoryColor(item.category)}`}
                               >
                                 <span>{getCategoryIcon(item.category)}</span>
-                                {item.category || 'Uncategorized'}
+                                {item.category || "Uncategorized"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">
@@ -1273,7 +1236,9 @@ export default function Page() {
                             <td className="px-4 py-3 text-sm">{item.date}</td>
                             <td className="px-4 py-3 text-sm">
                               {item.quantity === 0 ? (
-                                <Link href={`/view/product-in?product=${encodeURIComponent(item.product_name)}`}>
+                                <Link
+                                  href={`/view/product-in?product=${encodeURIComponent(item.product_name)}`}
+                                >
                                   <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
                                     Add Stock
                                   </div>
@@ -1305,13 +1270,15 @@ export default function Page() {
                   : "bg-white border-[#E5E7EB] text-black"
               }`}
             >
-              <h3 className="text-lg font-semibold mb-2">Export Inventory PDF</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Export Inventory PDF
+              </h3>
               <p
                 className={`text-sm mb-4 ${
                   darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                 }`}
               >
-                Delete all record in inventory then save PDF, or save PDF only?
+                Save the current inventory as a PDF file
               </p>
 
               {exportError && (
@@ -1327,18 +1294,6 @@ export default function Page() {
               )}
 
               <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  type="button"
-                  onClick={handleExportDeleteAndSave}
-                  disabled={isProcessingExport}
-                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
-                    isProcessingExport
-                      ? "bg-gray-400 text-white cursor-not-allowed"
-                      : "bg-red-600 hover:bg-red-700 text-white"
-                  }`}
-                >
-                  Delete Inventory + Save PDF
-                </button>
                 <button
                   type="button"
                   onClick={handleExportPdfOnly}
@@ -1359,4 +1314,3 @@ export default function Page() {
     </AuthGuard>
   );
 }
-
