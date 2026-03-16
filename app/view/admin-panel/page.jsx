@@ -11,6 +11,9 @@ import {
   Search,
   Pencil,
   Trash2,
+  UserCheck,
+  UserX,
+  Users,
   X,
   Save,
   ChevronLeft,
@@ -22,6 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../hook/useAuth";
 import { isAdminRole } from "../../utils/roleHelper";
+import { supabase } from "../../../lib/supabaseClient";
 import {
   fetchProductInController,
   fetchProductOutController,
@@ -48,6 +52,8 @@ const TABS = [
   { key: "components-out", label: "Components Out", icon: Truck },
 ];
 
+const APPROVAL_TABLES = ["user_profiles", "access_requests_temp"];
+
 const ITEMS_PER_PAGE = 10;
 
 export default function AdminPanelPage() {
@@ -63,6 +69,9 @@ export default function AdminPanelPage() {
   const [productsOut, setProductsOut] = useState([]);
   const [componentsIn, setComponentsIn] = useState([]);
   const [componentsOut, setComponentsOut] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [profileTable, setProfileTable] = useState(null);
+  const [usersError, setUsersError] = useState("");
   const [dataLoading, setDataLoading] = useState(true);
 
   // Search & pagination per tab
@@ -92,20 +101,72 @@ export default function AdminPanelPage() {
     }
   }, [loading, isAdmin, router]);
 
+  const fetchUserProfiles = useCallback(async () => {
+    const tableRows = [];
+    const errors = [];
+
+    for (const table of APPROVAL_TABLES) {
+      const { data, error } = await supabase
+        .from(table)
+        .select("id, name, email, role, is_approved, rejected_at, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        errors.push(`${table}: ${error.message}`);
+        continue;
+      }
+
+      tableRows.push(
+        ...(data || []).map((row) => ({
+          ...row,
+          __sourceTable: table,
+          status: row.is_approved ? "approved" : row.rejected_at ? "denied" : "pending",
+        })),
+      );
+    }
+
+    if (tableRows.length === 0 && errors.length > 0) {
+      setProfileTable(null);
+      setUsersError(errors.join(" | "));
+      return [];
+    }
+
+    // Deduplicate by user id; prefer user_profiles over temp table rows.
+    const deduped = new Map();
+    for (const row of tableRows) {
+      const existing = deduped.get(row.id);
+      if (!existing || (existing.__sourceTable !== "user_profiles" && row.__sourceTable === "user_profiles")) {
+        deduped.set(row.id, row);
+      }
+    }
+
+    const merged = Array.from(deduped.values()).sort((a, b) => {
+      const aTs = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTs = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return bTs - aTs;
+    });
+
+    setProfileTable(merged[0]?.__sourceTable || "user_profiles");
+    setUsersError("");
+    return merged;
+  }, []);
+
   const loadAllData = useCallback(async () => {
     setDataLoading(true);
-    const [pIn, pOut, cInResult, cOutResult] = await Promise.all([
+    const [pIn, pOut, cInResult, cOutResult, userProfiles] = await Promise.all([
       fetchProductInController(),
       fetchProductOutController(),
       getParcelInItems(),
       getParcelOutItems(),
+      fetchUserProfiles(),
     ]);
     setProductsIn(pIn || []);
     setProductsOut(pOut || []);
     setComponentsIn(cInResult?.data || []);
     setComponentsOut(cOutResult?.data || []);
+    setUsers(userProfiles || []);
     setDataLoading(false);
-  }, []);
+  }, [fetchUserProfiles]);
 
   useEffect(() => {
     if (isAdmin) loadAllData();
@@ -131,15 +192,26 @@ export default function AdminPanelPage() {
       case "products-out": return productsOut;
       case "components-in": return componentsIn;
       case "components-out": return componentsOut;
+      case "users": return users;
       default: return [];
     }
   };
 
   // Whether it's a product tab (vs component/parcel tab)
   const isProductTab = activeTab === "products-in" || activeTab === "products-out";
+  const isUsersTab = activeTab === "users";
 
   // Get fields for current tab
   const getFields = () => {
+    if (isUsersTab) {
+      return [
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "role", label: "Role" },
+        { key: "status", label: "Status" },
+      ];
+    }
+
     if (isProductTab) {
       return [
         { key: "product_name", label: "Product Name" },
@@ -166,6 +238,22 @@ export default function AdminPanelPage() {
     const data = getCurrentData();
     const keyword = search.trim().toLowerCase();
     if (!keyword) return data;
+
+    if (isUsersTab) {
+      return data.filter((item) => {
+        const name = (item.name || "").toLowerCase();
+        const email = (item.email || "").toLowerCase();
+        const role = (item.role || "").toLowerCase();
+        const status = (item.status || "").toLowerCase();
+        return (
+          name.includes(keyword) ||
+          email.includes(keyword) ||
+          role.includes(keyword) ||
+          status.includes(keyword)
+        );
+      });
+    }
+
     return data.filter((item) => {
       const name = (item.product_name || item.item_name || "").toLowerCase();
       const client = (item.client_name || "").toLowerCase();
@@ -183,6 +271,16 @@ export default function AdminPanelPage() {
 
   // Column config for table display
   const getColumns = () => {
+    if (isUsersTab) {
+      return [
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "role", label: "Role" },
+        { key: "status", label: "Status" },
+        { key: "created_at", label: "Registered" },
+      ];
+    }
+
     if (isProductTab) {
       return [
         { key: "product_name", label: "Name" },
@@ -224,9 +322,65 @@ export default function AdminPanelPage() {
     setEditForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const updateUserProfile = async (id, updates, sourceTable) => {
+    let dbUpdates = { ...updates };
+    if (updates.status !== undefined) {
+      dbUpdates.is_approved = updates.status === "approved";
+      if (updates.status === "approved") {
+        dbUpdates.approved_at = new Date().toISOString();
+        dbUpdates.rejected_at = null;
+      } else if (updates.status === "denied") {
+        dbUpdates.rejected_at = new Date().toISOString();
+        dbUpdates.approved_at = null;
+      } else {
+        dbUpdates.approved_at = null;
+        dbUpdates.rejected_at = null;
+      }
+      delete dbUpdates.status;
+    }
+    const target = sourceTable || profileTable || "user_profiles";
+    return supabase.from(target).update(dbUpdates).eq("id", id);
+  };
+
+  const deleteUserProfile = async (id, sourceTable) => {
+    const target = sourceTable || profileTable || "user_profiles";
+    return supabase.from(target).delete().eq("id", id);
+  };
+
+  const handleApprovalUpdate = async (id, status, sourceTable) => {
+    const { error } = await updateUserProfile(id, { status }, sourceTable);
+    if (error) {
+      setFeedback({ type: "error", message: `Failed to ${status} user: ${error.message}` });
+      return;
+    }
+    setFeedback({ type: "success", message: `User ${status} successfully.` });
+    await loadAllData();
+  };
+
   const handleEditSave = async () => {
     if (!editItem) return;
     setEditSaving(true);
+
+    if (isUsersTab) {
+      const updates = {
+        name: editForm.name || null,
+        email: editForm.email || null,
+        role: (editForm.role || "staff").toLowerCase(),
+        status: (editForm.status || "pending").toLowerCase(),
+      };
+
+      const { error } = await updateUserProfile(editItem.id, updates, editItem.__sourceTable);
+      if (error) {
+        setFeedback({ type: "error", message: `Update failed: ${error.message || "Unknown error"}` });
+        setEditSaving(false);
+        return;
+      }
+
+      setFeedback({ type: "success", message: "User updated successfully." });
+      closeEdit();
+      await loadAllData();
+      return;
+    }
 
     // Build the update payload — only include changed fields
     const updates = {};
@@ -286,6 +440,20 @@ export default function AdminPanelPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
+
+    if (isUsersTab) {
+      const { error } = await deleteUserProfile(deleteTarget.id, deleteTarget.__sourceTable);
+      if (error) {
+        setFeedback({ type: "error", message: `Delete failed: ${error.message || "Unknown error"}` });
+        setDeleting(false);
+        return;
+      }
+
+      setFeedback({ type: "success", message: "User deleted from profile list." });
+      closeDelete();
+      await loadAllData();
+      return;
+    }
 
     let result;
     switch (activeTab) {
@@ -368,7 +536,7 @@ export default function AdminPanelPage() {
                 <h1 className="text-2xl font-bold">Admin Control Panel</h1>
               </div>
               <p className={`text-sm ${subtextClass}`}>
-                Edit, delete, and manage all inventory records.
+                Edit, delete, and manage inventory records plus user approvals.
               </p>
             </div>
 
@@ -386,6 +554,19 @@ export default function AdminPanelPage() {
                 }`}
               >
                 {feedback.message}
+              </div>
+            )}
+
+            {activeTab === "users" && !profileTable && (
+              <div
+                className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                  darkMode
+                    ? "bg-amber-900/30 text-amber-300 border border-amber-800"
+                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                }`}
+              >
+                Unable to load user profiles. Check RLS permissions for `user_profiles` or `access_requests_temp`.
+                {usersError ? ` Details: ${usersError}` : ""}
               </div>
             )}
 
@@ -424,6 +605,7 @@ export default function AdminPanelPage() {
                           case "products-out": return productsOut.length;
                           case "components-in": return componentsIn.length;
                           case "components-out": return componentsOut.length;
+                          case "users": return users.length;
                           default: return 0;
                         }
                       })()}
@@ -439,7 +621,7 @@ export default function AdminPanelPage() {
                 <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${subtextClass}`} />
                 <input
                   type="text"
-                  placeholder={`Search ${isProductTab ? "products" : "components"}...`}
+                  placeholder={`Search ${isUsersTab ? "users" : isProductTab ? "products" : "components"}...`}
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   className={`w-full pl-10 pr-4 py-2.5 rounded-lg text-sm border transition-colors ${
@@ -494,7 +676,25 @@ export default function AdminPanelPage() {
                           >
                             {getColumns().map((col) => (
                               <td key={col.key} className="px-4 py-3">
-                                {col.key === "price"
+                                {col.key === "created_at"
+                                  ? item[col.key]
+                                    ? new Date(item[col.key]).toLocaleDateString()
+                                    : "—"
+                                  : col.key === "status"
+                                    ? (
+                                      <span
+                                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                          String(item[col.key] || "").toLowerCase() === "approved"
+                                            ? "bg-green-100 text-green-700"
+                                            : String(item[col.key] || "").toLowerCase() === "denied"
+                                              ? "bg-red-100 text-red-700"
+                                              : "bg-amber-100 text-amber-700"
+                                        }`}
+                                      >
+                                        {item[col.key] || "pending"}
+                                      </span>
+                                    )
+                                  : col.key === "price"
                                   ? item[col.key] != null
                                     ? `₱${Number(item[col.key]).toLocaleString()}`
                                     : "—"
@@ -516,6 +716,34 @@ export default function AdminPanelPage() {
                             ))}
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-end gap-2">
+                                {isUsersTab && String(item.status || "").toLowerCase() === "pending" && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApprovalUpdate(item.id, "approved", item.__sourceTable)}
+                                      className={`p-1.5 rounded-lg transition-colors ${
+                                        darkMode
+                                          ? "hover:bg-[#374151] text-green-400"
+                                          : "hover:bg-green-50 text-green-600"
+                                      }`}
+                                      title="Approve"
+                                    >
+                                      <UserCheck className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApprovalUpdate(item.id, "denied", item.__sourceTable)}
+                                      className={`p-1.5 rounded-lg transition-colors ${
+                                        darkMode
+                                          ? "hover:bg-[#374151] text-amber-400"
+                                          : "hover:bg-amber-50 text-amber-600"
+                                      }`}
+                                      title="Deny"
+                                    >
+                                      <UserX className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => openEdit(item)}
@@ -612,16 +840,45 @@ export default function AdminPanelPage() {
                     <label className={`block text-xs font-medium mb-1.5 ${subtextClass}`}>
                       {field.label}
                     </label>
-                    <input
-                      type={field.type || "text"}
-                      value={editForm[field.key] ?? ""}
-                      onChange={(e) => handleEditChange(field.key, e.target.value)}
-                      className={`w-full px-3 py-2.5 rounded-lg text-sm border transition-colors outline-none ${
-                        darkMode
-                          ? "bg-[#111827] border-[#374151] text-white focus:border-[#2563EB]"
-                          : "bg-[#F9FAFB] border-[#E5E7EB] text-black focus:border-[#2563EB]"
-                      }`}
-                    />
+                    {isUsersTab && field.key === "role" ? (
+                      <select
+                        value={editForm[field.key] ?? "staff"}
+                        onChange={(e) => handleEditChange(field.key, e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-lg text-sm border transition-colors outline-none ${
+                          darkMode
+                            ? "bg-[#111827] border-[#374151] text-white focus:border-[#2563EB]"
+                            : "bg-[#F9FAFB] border-[#E5E7EB] text-black focus:border-[#2563EB]"
+                        }`}
+                      >
+                        <option value="staff">staff</option>
+                        <option value="admin">admin</option>
+                      </select>
+                    ) : isUsersTab && field.key === "status" ? (
+                      <select
+                        value={editForm[field.key] ?? "pending"}
+                        onChange={(e) => handleEditChange(field.key, e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-lg text-sm border transition-colors outline-none ${
+                          darkMode
+                            ? "bg-[#111827] border-[#374151] text-white focus:border-[#2563EB]"
+                            : "bg-[#F9FAFB] border-[#E5E7EB] text-black focus:border-[#2563EB]"
+                        }`}
+                      >
+                        <option value="pending">pending</option>
+                        <option value="approved">approved</option>
+                        <option value="denied">denied</option>
+                      </select>
+                    ) : (
+                      <input
+                        type={field.type || "text"}
+                        value={editForm[field.key] ?? ""}
+                        onChange={(e) => handleEditChange(field.key, e.target.value)}
+                        className={`w-full px-3 py-2.5 rounded-lg text-sm border transition-colors outline-none ${
+                          darkMode
+                            ? "bg-[#111827] border-[#374151] text-white focus:border-[#2563EB]"
+                            : "bg-[#F9FAFB] border-[#E5E7EB] text-black focus:border-[#2563EB]"
+                        }`}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -672,7 +929,7 @@ export default function AdminPanelPage() {
                 <p className={`text-sm ${subtextClass}`}>
                   Are you sure you want to delete{" "}
                   <strong className={darkMode ? "text-white" : "text-black"}>
-                    {deleteTarget.product_name || deleteTarget.item_name || `#${deleteTarget.id}`}
+                    {deleteTarget.name || deleteTarget.email || deleteTarget.product_name || deleteTarget.item_name || `#${deleteTarget.id}`}
                   </strong>
                   ? This action cannot be undone.
                 </p>

@@ -688,10 +688,10 @@ export default function Page() {
                     >
                       <tr>
                         {[
-                          "Product Code",  /* Changed to be the first; task 8 done. */  
-                          "Item Name", 
-                          "SKU",
+                          "Item Name",  /* Changed to be the first; task 8 done. */ 
                           "Description",
+                          "SKU",
+                          "Category",
                           "Stock Quantity",
                           "Status",
                           "Date Added",

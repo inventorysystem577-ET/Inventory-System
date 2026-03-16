@@ -16,17 +16,22 @@ const STAFF_ALLOWED_PATHS = [
 ];
 
 // Admin-only pages
-const ADMIN_ONLY_PATHS = ["/view/admin-panel"];
+const ADMIN_ONLY_PATHS = ["/view/admin-panel", "/view/user-approvals"];
 
 /* ================= AUTH GUARD ================= */
 export default function AuthGuard({ children, darkMode = false }) {
-  const { loading: authLoading, userEmail, role } = useAuth();
+  const { loading: authLoading, userEmail, role, status } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = isAdminRole(role);
+  const isApproved = status === "approved";
 
   useEffect(() => {
     if (authLoading || !userEmail) return;
+    if (!isApproved) {
+      router.replace("/");
+      return;
+    }
     if (isAdmin) return;
     // Staff: block admin-only pages
     if (ADMIN_ONLY_PATHS.includes(pathname)) {
@@ -37,7 +42,7 @@ export default function AuthGuard({ children, darkMode = false }) {
     if (!STAFF_ALLOWED_PATHS.includes(pathname)) {
       router.replace("/view/dashboard");
     }
-  }, [authLoading, userEmail, isAdmin, pathname, router]);
+  }, [authLoading, userEmail, isAdmin, isApproved, pathname, router]);
 
   if (authLoading) {
     return (
@@ -58,6 +63,7 @@ export default function AuthGuard({ children, darkMode = false }) {
   }
 
   if (!userEmail) return null;
+  if (!isApproved) return null;
   if (!isAdmin && ADMIN_ONLY_PATHS.includes(pathname)) return null;
 
   return <>{children}</>;

@@ -15,9 +15,9 @@ import { handleSubmitRegister } from "../../controller/registerController";
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [reason, setReason] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
 
   const onSubmit = (e) => {
@@ -26,13 +26,26 @@ export default function RegisterPage() {
       return;
     }
 
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasDigit = /\d/.test(password);
+    if (password.length < 8 || !hasUpper || !hasLower || !hasDigit) {
+      alert("Password must contain at least 8 characters, including uppercase, lowercase, and numbers.");
+      return;
+    }
+
+    if (!reason.trim()) {
+      alert("Please provide your reason for requesting access.");
+      return;
+    }
+
     handleFormSubmit({
       e,
       controllerFn: handleSubmitRegister,
-      data: { name, email, password, role },
+      data: { name, email, password, role: "staff", reason: reason.trim() },
       setLoading,
       onSuccess: (response) => {
-        alert(response.message || "Account Created successfully!");
+        alert(response.message || "Registration submitted. Please wait for admin approval.");
         window.location.href = "/";
       },
       onError: (error) => alert(error.message),
@@ -72,12 +85,12 @@ export default function RegisterPage() {
               setName={setName}
               email={email}
               setEmail={setEmail}
+              reason={reason}
+              setReason={setReason}
               password={password}
               setPassword={setPassword}
               confirmPassword={confirmPassword}
               setConfirmPassword={setConfirmPassword}
-              role={role}
-              setRole={setRole}
               onSubmit={onSubmit}
               loading={loading}
             />

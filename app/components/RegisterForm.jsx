@@ -9,16 +9,28 @@ export default function RegisterComponents({
   setName,
   email,
   setEmail,
+  reason,
+  setReason,
   password,
   setPassword,
   confirmPassword,
   setConfirmPassword,
-  role,
-  setRole,
   onSubmit,
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const getPasswordStrength = (value) => {
+    if (!value) return 0;
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score += 1;
+    if (/\d/.test(value)) score += 1;
+    return score;
+  };
+
+  const strength = getPasswordStrength(password);
+  const strengthLabel = strength <= 1 ? "Weak" : strength === 2 ? "Medium" : "Strong";
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -47,21 +59,16 @@ export default function RegisterComponents({
         <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
           Role
         </label>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
+        <input
+          type="text"
+          value="Staff (requires admin approval)"
+          disabled
           className="w-full px-4 py-3 border rounded-lg
             border-gray-600 md:border-gray-300
-            bg-gray-800 md:bg-white
-            text-white md:text-black
-            focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
-            transition-all"
-          required
-        >
-          <option value="">Select a role</option>
-          <option value="admin">Admin</option>
-          <option value="staff">Staff</option>
-        </select>
+            bg-gray-700 md:bg-gray-100
+            text-gray-300 md:text-gray-700
+            cursor-not-allowed"
+        />
       </div>
 
       {/* Email */}
@@ -80,6 +87,26 @@ export default function RegisterComponents({
             text-white md:text-black
             focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
             transition-all"
+          required
+        />
+      </div>
+
+      {/* Registration Reason */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
+          Reason for Access
+        </label>
+        <textarea
+          placeholder="Tell the admin why you need access"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={3}
+          className="w-full px-4 py-3 border rounded-lg
+            border-gray-600 md:border-gray-300
+            bg-gray-800 md:bg-white
+            text-white md:text-black
+            focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
+            transition-all resize-none"
           required
         />
       </div>
@@ -103,7 +130,6 @@ export default function RegisterComponents({
               transition-all"
             required
             minLength={8}
-            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$"
             title="Password must contain at least 8 characters, including uppercase, lowercase, and numbers"
           />
           <button
@@ -117,6 +143,14 @@ export default function RegisterComponents({
         <p className="text-xs text-gray-400 md:text-gray-500 mt-1">
           At least 8 characters with uppercase, lowercase, and numbers
         </p>
+        <div className="mt-2 space-y-1">
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className={`h-1.5 rounded ${strength >= 1 ? "bg-red-500" : "bg-gray-300"}`} />
+            <div className={`h-1.5 rounded ${strength >= 2 ? "bg-yellow-500" : "bg-gray-300"}`} />
+            <div className={`h-1.5 rounded ${strength >= 3 ? "bg-green-500" : "bg-gray-300"}`} />
+          </div>
+          <p className="text-xs text-gray-400 md:text-gray-500">Strength: {password ? strengthLabel : "—"}</p>
+        </div>
       </div>
 
       {/* Confirm Password */}
@@ -138,7 +172,6 @@ export default function RegisterComponents({
               transition-all"
             required
             minLength={8}
-            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$"
             title="Password must contain at least 8 characters, including uppercase, lowercase, and numbers"
           />
           <button
