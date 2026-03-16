@@ -19,12 +19,12 @@ import {
 } from "lucide-react";
 import "animate.css";
 
-import { fetchParcelItems } from "../../utils/parcelShippedHelper"; // parcel_in
-import { fetchParcelOutItems } from "../../utils/parcelOutHelper"; // parcel_out
+import { fetchParcelItems } from "../../utils/parcelShippedHelper";
+import { fetchParcelOutItems } from "../../utils/parcelOutHelper";
 import {
   fetchProductInController,
   fetchProductOutController,
-} from "../../controller/productController"; // Product IN/OUT
+} from "../../controller/productController";
 import { buildProductCode, buildSku } from "../../utils/inventoryMeta";
 
 export default function page() {
@@ -34,18 +34,17 @@ export default function page() {
 
   const [parcelShipped, setParcelShipped] = useState([]);
   const [parcelDelivery, setParcelDelivery] = useState([]);
-  const [stockItems, setStockItems] = useState([]); // Items from parcel_in
+  const [stockItems, setStockItems] = useState([]);
 
   const [parcelShippedCount, setParcelShippedCount] = useState(0);
   const [parcelDeliveryCount, setParcelDeliveryCount] = useState(0);
 
-  // Product IN/OUT states
   const [productIn, setProductIn] = useState([]);
   const [productOut, setProductOut] = useState([]);
   const [productInCount, setProductInCount] = useState(0);
   const [productOutCount, setProductOutCount] = useState(0);
 
-  // Stock status counts (for parcel items)
+  // Component (parcel) stock status counts
   const [statusCounts, setStatusCounts] = useState({
     out: 0,
     critical: 0,
@@ -53,18 +52,18 @@ export default function page() {
     available: 0,
   });
 
-  // Product status counts
+  // Product stock status counts
   const [productStatusCounts, setProductStatusCounts] = useState({
     out: 0,
     critical: 0,
     low: 0,
     available: 0,
   });
+
   const [inventorySearch, setInventorySearch] = useState("");
 
   const router = useRouter();
 
-  // Helper to convert 24-hour time to 12-hour format
   const convertTo12Hour = (time24) => {
     if (!time24) return "";
     const [hours, minutes] = time24.split(":");
@@ -74,7 +73,6 @@ export default function page() {
     return `${hour12}:${minutes} ${period}`;
   };
 
-  // Helper to get stock status
   const getStockStatus = (quantity) => {
     if (quantity === 0) return "out";
     if (quantity <= 5) return "critical";
@@ -82,7 +80,6 @@ export default function page() {
     return "available";
   };
 
-  // Helper to get status label
   const getStatusLabel = (quantity) => {
     if (quantity === 0) return "Out of Stock";
     if (quantity <= 5) return "Critical Level";
@@ -90,7 +87,6 @@ export default function page() {
     return "Available";
   };
 
-  // Helper to get status color
   const getStatusColor = (quantity, darkMode) => {
     if (quantity === 0) {
       return darkMode
@@ -112,7 +108,6 @@ export default function page() {
       : "bg-green-50 text-green-700 border border-green-200";
   };
 
-  // Helper to get status icon
   const getStatusIcon = (quantity) => {
     if (quantity === 0) return <XCircle className="w-4 h-4" />;
     if (quantity <= 5)
@@ -126,14 +121,13 @@ export default function page() {
     if (savedDarkMode !== null) setDarkMode(savedDarkMode === "true");
 
     const fetchData = async () => {
-      // Fetch Parcel data
       const shippedRes = await fetchParcelItems();
       const deliveryRes = await fetchParcelOutItems();
 
       setParcelShipped(shippedRes || []);
       setStockItems(shippedRes || []);
 
-      // Calculate status counts from parcel_in
+      // Calculate component status counts
       const counts = { out: 0, critical: 0, low: 0, available: 0 };
       (shippedRes || []).forEach((item) => {
         const status = getStockStatus(item.quantity);
@@ -148,14 +142,12 @@ export default function page() {
       setParcelDelivery(deliveryRes || []);
       setParcelDeliveryCount((deliveryRes || []).length || 0);
 
-      // Fetch Product IN/OUT data
       const productInRes = await fetchProductInController();
       const productOutRes = await fetchProductOutController();
 
       setProductIn(productInRes || []);
       setProductOut(productOutRes || []);
 
-      // Calculate product counts
       const productInWithStock =
         (productInRes || []).filter((item) => item.quantity > 0).length || 0;
       setProductInCount(productInWithStock);
@@ -183,13 +175,10 @@ export default function page() {
     }
   };
 
-  // Get items that need attention (parcel items)
   const searchKey = inventorySearch.trim().toLowerCase();
-  const itemsNeedingAttention = stockItems.filter((item) => {
-    return item.quantity < 10;
-  });
 
-  // Get products that need attention
+  const itemsNeedingAttention = stockItems.filter((item) => item.quantity < 10);
+
   const productsNeedingAttention = productIn.filter((item) => {
     if (item.quantity >= 10) return false;
     if (!searchKey) return true;
@@ -200,7 +189,6 @@ export default function page() {
     );
   });
 
-  // Combined alert count
   const totalAlertsCount =
     statusCounts.out +
     statusCounts.critical +
@@ -214,15 +202,12 @@ export default function page() {
           darkMode ? "bg-[#111827] text-white" : "bg-[#F3F4F6] text-black"
         }`}
       >
-        {/* Top Navbar */}
         <TopNavbar
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
         />
-
-        {/* Sidebar */}
         <Sidebar
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
@@ -232,14 +217,11 @@ export default function page() {
         />
 
         <div
-          className={`transition-all duration-300 ${
-            sidebarOpen ? "lg:ml-64" : "ml-0"
-          } pt-16`}
+          className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-64" : "ml-0"} pt-16`}
         >
           <div className="p-4 sm:p-6 lg:p-8">
-            {/* Summary Cards - Row 1: Main Stats */}
+            {/* Summary Cards - Stock In / Stock Out */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">
-              {/* Stock In - Royal Blue */}
               <div
                 onClick={() => handleCardClick("/view/parcel-shipped")}
                 className="bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
@@ -255,7 +237,6 @@ export default function page() {
                 <p className="text-xs opacity-75">Items in stock</p>
               </div>
 
-              {/* Stock Out - Orange */}
               <div
                 onClick={() => handleCardClick("/view/parcel-delivery")}
                 className="bg-gradient-to-br from-[#ea580c] to-[#c2410c] text-white p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-2xl active:scale-95"
@@ -273,11 +254,148 @@ export default function page() {
               </div>
             </div>
 
-
-            {/* Summary Cards - Row 3: Product Stock Status */}
+            {/* ============= COMPONENT STOCK STATUS ============= */}
             <div className="mb-8">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                📦 Product Stock Status
+                <Package className="w-5 h-5 text-[#1e40af]" />
+                Component Stock Status
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Component Out of Stock */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "out", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.2s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <XCircle className="w-6 h-6 text-red-500" />
+                    <p className="text-xs text-gray-500">Critical</p>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                  >
+                    Out of Stock
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.out}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-red-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${stockItems.length > 0 ? (statusCounts.out / stockItems.length) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Component Critical */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "critical", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.3s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <AlertTriangle className="w-6 h-6 text-orange-500" />
+                    <p className="text-xs text-gray-500">Alert</p>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                  >
+                    Critical Level
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.critical}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${stockItems.length > 0 ? (statusCounts.critical / stockItems.length) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Component Low Stock */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "low", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.4s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <TrendingDown className="w-6 h-6 text-yellow-500" />
+                    <p className="text-xs text-gray-500">Warning</p>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                  >
+                    Low Stock
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.low}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${stockItems.length > 0 ? (statusCounts.low / stockItems.length) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Component Available */}
+                <div
+                  onClick={() =>
+                    handleCardClick("/view/out-of-stock", "available", "parcel")
+                  }
+                  className={`p-6 rounded-xl shadow-lg animate__animated animate__fadeInUp cursor-pointer transform transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 ${
+                    darkMode
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  style={{ animationDelay: "0.5s" }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <Box className="w-6 h-6 text-green-500" />
+                    <p className="text-xs text-gray-500">Good</p>
+                  </div>
+                  <p
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
+                  >
+                    Available
+                  </p>
+                  <p className="text-2xl font-bold">{statusCounts.available}</p>
+                  <div className="mt-2 bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                    <div
+                      className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${stockItems.length > 0 ? (statusCounts.available / stockItems.length) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ============= PRODUCT STOCK STATUS ============= */}
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Boxes className="w-5 h-5 text-[#7c3aed]" />
+                Product Stock Status
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Product Out of Stock */}
@@ -290,18 +408,14 @@ export default function page() {
                       ? "bg-gray-800 border border-gray-700"
                       : "bg-white border border-gray-200"
                   }`}
-                  style={{ animationDelay: "0.8s" }}
+                  style={{ animationDelay: "0.6s" }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <XCircle className="w-6 h-6 text-red-500" />
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Critical</p>
-                    </div>
+                    <p className="text-xs text-gray-500">Critical</p>
                   </div>
                   <p
-                    className={`text-sm mb-1 ${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
                   >
                     Out of Stock
                   </p>
@@ -312,11 +426,7 @@ export default function page() {
                     <div
                       className="bg-red-500 h-1.5 rounded-full transition-all duration-500"
                       style={{
-                        width: `${
-                          productIn.length > 0
-                            ? (productStatusCounts.out / productIn.length) * 100
-                            : 0
-                        }%`,
+                        width: `${productIn.length > 0 ? (productStatusCounts.out / productIn.length) * 100 : 0}%`,
                       }}
                     />
                   </div>
@@ -332,18 +442,14 @@ export default function page() {
                       ? "bg-gray-800 border border-gray-700"
                       : "bg-white border border-gray-200"
                   }`}
-                  style={{ animationDelay: "0.9s" }}
+                  style={{ animationDelay: "0.7s" }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <AlertTriangle className="w-6 h-6 text-orange-500" />
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Alert</p>
-                    </div>
+                    <p className="text-xs text-gray-500">Alert</p>
                   </div>
                   <p
-                    className={`text-sm mb-1 ${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
                   >
                     Critical Level
                   </p>
@@ -354,13 +460,7 @@ export default function page() {
                     <div
                       className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
                       style={{
-                        width: `${
-                          productIn.length > 0
-                            ? (productStatusCounts.critical /
-                                productIn.length) *
-                              100
-                            : 0
-                        }%`,
+                        width: `${productIn.length > 0 ? (productStatusCounts.critical / productIn.length) * 100 : 0}%`,
                       }}
                     />
                   </div>
@@ -376,18 +476,14 @@ export default function page() {
                       ? "bg-gray-800 border border-gray-700"
                       : "bg-white border border-gray-200"
                   }`}
-                  style={{ animationDelay: "1s" }}
+                  style={{ animationDelay: "0.8s" }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <TrendingDown className="w-6 h-6 text-yellow-500" />
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Warning</p>
-                    </div>
+                    <p className="text-xs text-gray-500">Warning</p>
                   </div>
                   <p
-                    className={`text-sm mb-1 ${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
                   >
                     Low Stock
                   </p>
@@ -398,11 +494,7 @@ export default function page() {
                     <div
                       className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
                       style={{
-                        width: `${
-                          productIn.length > 0
-                            ? (productStatusCounts.low / productIn.length) * 100
-                            : 0
-                        }%`,
+                        width: `${productIn.length > 0 ? (productStatusCounts.low / productIn.length) * 100 : 0}%`,
                       }}
                     />
                   </div>
@@ -422,18 +514,14 @@ export default function page() {
                       ? "bg-gray-800 border border-gray-700"
                       : "bg-white border border-gray-200"
                   }`}
-                  style={{ animationDelay: "1.1s" }}
+                  style={{ animationDelay: "0.9s" }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <Box className="w-6 h-6 text-green-500" />
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Good</p>
-                    </div>
+                    <p className="text-xs text-gray-500">Good</p>
                   </div>
                   <p
-                    className={`text-sm mb-1 ${
-                      darkMode ? "text-gray-400" : "text-gray-600"
-                    }`}
+                    className={`text-sm mb-1 ${darkMode ? "text-gray-400" : "text-gray-600"}`}
                   >
                     Available
                   </p>
@@ -444,13 +532,7 @@ export default function page() {
                     <div
                       className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
                       style={{
-                        width: `${
-                          productIn.length > 0
-                            ? (productStatusCounts.available /
-                                productIn.length) *
-                              100
-                            : 0
-                        }%`,
+                        width: `${productIn.length > 0 ? (productStatusCounts.available / productIn.length) * 100 : 0}%`,
                       }}
                     />
                   </div>
@@ -461,11 +543,7 @@ export default function page() {
             {/* Alert Banner */}
             {totalAlertsCount > 0 && (
               <div
-                className={`p-4 rounded-xl mb-6 border-l-4 animate__animated animate__fadeInDown ${
-                  darkMode
-                    ? "bg-[#7f1d1d]/20 border-[#EF4444]"
-                    : "bg-[#FEE2E2] border-[#DC2626]"
-                }`}
+                className={`p-4 rounded-xl mb-6 border-l-4 animate__animated animate__fadeInDown ${darkMode ? "bg-[#7f1d1d]/20 border-[#EF4444]" : "bg-[#FEE2E2] border-[#DC2626]"}`}
               >
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
@@ -474,11 +552,9 @@ export default function page() {
                       ⚠️ Inventory Alert
                     </h3>
                     <p
-                      className={`text-sm ${
-                        darkMode ? "text-gray-300" : "text-gray-700"
-                      }`}
+                      className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}
                     >
-                      Parcels:{" "}
+                      Components:{" "}
                       {statusCounts.out > 0 &&
                         `${statusCounts.out} out of stock`}
                       {statusCounts.out > 0 &&
@@ -504,18 +580,12 @@ export default function page() {
               </div>
             )}
 
-            {/* Tables Section */}
+            {/* Search */}
             <div
-              className={`rounded-xl border p-4 mb-6 ${
-                darkMode
-                  ? "bg-[#1F2937] border-[#374151]"
-                  : "bg-white border-[#E5E7EB]"
-              }`}
+              className={`rounded-xl border p-4 mb-6 ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
             >
               <label
-                className={`block text-sm font-medium mb-2 ${
-                  darkMode ? "text-gray-300" : "text-gray-700"
-                }`}
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
               >
                 Search Product Inventory (by code, product, SKU)
               </label>
@@ -524,37 +594,26 @@ export default function page() {
                 value={inventorySearch}
                 onChange={(e) => setInventorySearch(e.target.value)}
                 placeholder="e.g. PRD-00001, SKU-00001, product name"
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                  darkMode
-                    ? "border-[#374151] focus:ring-[#60A5FA] bg-[#111827] text-white"
-                    : "border-[#D1D5DB] focus:ring-[#1E40AF] bg-white text-black"
-                }`}
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${darkMode ? "border-[#374151] focus:ring-[#60A5FA] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1E40AF] bg-white text-black"}`}
               />
             </div>
+
+            {/* Attention Tables */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Parcel Items Needing Attention */}
+              {/* Components Needing Attention */}
               <div
-                className={`rounded-xl shadow-lg p-6 border ${
-                  darkMode
-                    ? "bg-[#1F2937] border-[#374151]"
-                    : "bg-white border-[#E5E7EB]"
-                }`}
+                className={`rounded-xl shadow-lg p-6 border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
                     Components Needing Attention
                   </h3>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      darkMode
-                        ? "bg-orange-900/30 text-orange-400"
-                        : "bg-orange-50 text-orange-700"
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${darkMode ? "bg-orange-900/30 text-orange-400" : "bg-orange-50 text-orange-700"}`}
                   >
                     {itemsNeedingAttention.length}
                   </span>
                 </div>
-
                 <div className="overflow-x-auto">
                   <table className="w-full table-fixed">
                     <thead
@@ -564,9 +623,7 @@ export default function page() {
                         {["Item", "Stock Quantity", "Status"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
-                              darkMode ? "text-gray-400" : "text-gray-700"
-                            }`}
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-700"}`}
                           >
                             {head}
                           </th>
@@ -574,17 +631,13 @@ export default function page() {
                       </tr>
                     </thead>
                     <tbody
-                      className={`divide-y ${
-                        darkMode ? "divide-[#374151]" : "divide-gray-200"
-                      }`}
+                      className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-gray-200"}`}
                     >
                       {itemsNeedingAttention.length === 0 ? (
                         <tr>
                           <td colSpan="3" className="px-4 py-8 text-center">
                             <p
-                              className={`text-sm ${
-                                darkMode ? "text-gray-400" : "text-gray-600"
-                              }`}
+                              className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}
                             >
                               All items well-stocked
                             </p>
@@ -594,22 +647,17 @@ export default function page() {
                         itemsNeedingAttention.slice(0, 5).map((item) => (
                           <tr
                             key={item.id}
-                            className={`${
-                              darkMode
-                                ? "hover:bg-[#374151]"
-                                : "hover:bg-gray-50"
-                            }`}
+                            className={`${darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"}`}
                           >
-                            <td className="px-4 py-3 text-sm text-center align-middle">{item.name}</td>
+                            <td className="px-4 py-3 text-sm text-center align-middle">
+                              {item.name}
+                            </td>
                             <td className="px-4 py-3 text-sm text-center align-middle">
                               {item.quantity}
                             </td>
                             <td className="px-4 py-3 text-sm text-center align-middle">
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
-                                  item.quantity,
-                                  darkMode,
-                                )}`}
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(item.quantity, darkMode)}`}
                               >
                                 {getStatusIcon(item.quantity)}
                               </span>
@@ -624,27 +672,18 @@ export default function page() {
 
               {/* Products Needing Attention */}
               <div
-                className={`rounded-xl shadow-lg p-6 border ${
-                  darkMode
-                    ? "bg-[#1F2937] border-[#374151]"
-                    : "bg-white border-[#E5E7EB]"
-                }`}
+                className={`rounded-xl shadow-lg p-6 border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">
                     Products Needing Attention
                   </h3>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      darkMode
-                        ? "bg-orange-900/30 text-orange-400"
-                        : "bg-orange-50 text-orange-700"
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${darkMode ? "bg-orange-900/30 text-orange-400" : "bg-orange-50 text-orange-700"}`}
                   >
                     {productsNeedingAttention.length}
                   </span>
                 </div>
-
                 <div className="overflow-x-auto">
                   <table className="w-full table-fixed">
                     <thead
@@ -660,9 +699,7 @@ export default function page() {
                         ].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
-                              darkMode ? "text-gray-400" : "text-gray-700"
-                            }`}
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-700"}`}
                           >
                             {head}
                           </th>
@@ -670,17 +707,13 @@ export default function page() {
                       </tr>
                     </thead>
                     <tbody
-                      className={`divide-y ${
-                        darkMode ? "divide-[#374151]" : "divide-gray-200"
-                      }`}
+                      className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-gray-200"}`}
                     >
                       {productsNeedingAttention.length === 0 ? (
                         <tr>
                           <td colSpan="5" className="px-4 py-8 text-center">
                             <p
-                              className={`text-sm ${
-                                darkMode ? "text-gray-400" : "text-gray-600"
-                              }`}
+                              className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}
                             >
                               All products well-stocked
                             </p>
@@ -690,11 +723,7 @@ export default function page() {
                         productsNeedingAttention.slice(0, 5).map((item) => (
                           <tr
                             key={item.id}
-                            className={`${
-                              darkMode
-                                ? "hover:bg-[#374151]"
-                                : "hover:bg-gray-50"
-                            }`}
+                            className={`${darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"}`}
                           >
                             <td className="px-4 py-3 text-sm text-center align-middle">
                               {item.product_name}
@@ -710,10 +739,7 @@ export default function page() {
                             </td>
                             <td className="px-4 py-3 text-sm text-center align-middle">
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(
-                                  item.quantity,
-                                  darkMode,
-                                )}`}
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getStatusColor(item.quantity, darkMode)}`}
                               >
                                 {getStatusIcon(item.quantity)}
                               </span>
@@ -727,22 +753,17 @@ export default function page() {
               </div>
             </div>
 
-            {/* Recent Activity Tables */}
+            {/* Recent Activity */}
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 📋 Recent Activity
               </h2>
             </div>
 
-            {/* Stock In/Out Tables */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Recent Stock In */}
               <div
-                className={`rounded-xl shadow-lg p-6 border ${
-                  darkMode
-                    ? "bg-[#1F2937] border-[#374151]"
-                    : "bg-white border-[#E5E7EB]"
-                }`}
+                className={`rounded-xl shadow-lg p-6 border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
               >
                 <h3 className="text-lg font-semibold mb-4">Recent Stock In</h3>
                 <div className="overflow-x-auto">
@@ -754,9 +775,7 @@ export default function page() {
                         {["Item", "Qty", "Date"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
-                              darkMode ? "text-gray-400" : "text-gray-700"
-                            }`}
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-700"}`}
                           >
                             {head}
                           </th>
@@ -764,20 +783,22 @@ export default function page() {
                       </tr>
                     </thead>
                     <tbody
-                      className={`divide-y ${
-                        darkMode ? "divide-[#374151]" : "divide-gray-200"
-                      }`}
+                      className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-gray-200"}`}
                     >
                       {parcelShipped.slice(0, 5).map((item, index) => (
                         <tr
                           key={index}
-                          className={`${
-                            darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
-                          }`}
+                          className={`${darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"}`}
                         >
-                          <td className="px-4 py-3 text-sm text-center align-middle">{item.name}</td>
-                          <td className="px-4 py-3 text-sm text-center align-middle">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm text-center align-middle">{item.date}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">
+                            {item.name}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">
+                            {item.quantity}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">
+                            {item.date}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -787,15 +808,9 @@ export default function page() {
 
               {/* Recent Stock Out */}
               <div
-                className={`rounded-xl shadow-lg p-6 border ${
-                  darkMode
-                    ? "bg-[#1F2937] border-[#374151]"
-                    : "bg-white border-[#E5E7EB]"
-                }`}
+                className={`rounded-xl shadow-lg p-6 border ${darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"}`}
               >
-                <h3 className="text-lg font-semibold mb-4">
-                  Recent Stock Out
-                </h3>
+                <h3 className="text-lg font-semibold mb-4">Recent Stock Out</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full table-fixed">
                     <thead
@@ -805,9 +820,7 @@ export default function page() {
                         {["Item", "Qty", "Date"].map((head) => (
                           <th
                             key={head}
-                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${
-                              darkMode ? "text-gray-400" : "text-gray-700"
-                            }`}
+                            className={`px-4 py-2 text-center text-xs font-medium uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-700"}`}
                           >
                             {head}
                           </th>
@@ -815,20 +828,22 @@ export default function page() {
                       </tr>
                     </thead>
                     <tbody
-                      className={`divide-y ${
-                        darkMode ? "divide-[#374151]" : "divide-gray-200"
-                      }`}
+                      className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-gray-200"}`}
                     >
                       {parcelDelivery.slice(0, 5).map((item, index) => (
                         <tr
                           key={index}
-                          className={`${
-                            darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"
-                          }`}
+                          className={`${darkMode ? "hover:bg-[#374151]" : "hover:bg-gray-50"}`}
                         >
-                          <td className="px-4 py-3 text-sm text-center align-middle">{item.name}</td>
-                          <td className="px-4 py-3 text-sm text-center align-middle">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm text-center align-middle">{item.date}</td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">
+                            {item.name}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">
+                            {item.quantity}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center align-middle">
+                            {item.date}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
