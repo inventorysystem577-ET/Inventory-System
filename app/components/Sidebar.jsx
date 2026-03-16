@@ -1,5 +1,13 @@
 "use client";
-import { LogOut } from "lucide-react";
+import {
+  LogOut,
+  BarChart3,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Package,
+  PackageOpen,
+  Activity,
+} from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { handleLogout } from "../controller/logoutController";
 import { useAuth } from "../hook/useAuth";
