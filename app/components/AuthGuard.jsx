@@ -8,15 +8,17 @@ import { isAdminRole } from "../utils/roleHelper";
 // Pages staff can access (everything except admin panel)
 const STAFF_ALLOWED_PATHS = [
   "/view/product-in",
-  "/view/product-out",
   "/view/parcel-shipped",
-  "/view/parcel-delivery",
   "/view/out-of-stock",
   "/view/dashboard",
 ];
 
 // Admin-only pages
-const ADMIN_ONLY_PATHS = ["/view/admin-panel", "/view/user-approvals"];
+const ADMIN_ONLY_PATHS = [
+  "/view/admin-panel",
+  "/view/user-approvals",
+  "/view/admin-Crud-Products",
+];
 
 /* ================= AUTH GUARD ================= */
 export default function AuthGuard({ children, darkMode = false }) {
