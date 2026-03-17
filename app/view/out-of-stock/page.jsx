@@ -20,6 +20,7 @@ import {
   FileJson,
   FileDown,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import "animate.css";
@@ -46,6 +47,19 @@ import {
   getCategoryColor,
   getCategoryIcon,
 } from "../../utils/categoryUtils";
+import {
+  addParcelInItem,
+  updateParcelInItem,
+  getParcelInItems,
+  deleteParcelInItem,
+} from "../../models/parcelShippedModel";
+import {
+  upsertProductIn,
+  getProductIn,
+  getProductInByName,
+  updateProductInQuantity,
+  deleteProductInByName,
+} from "../../models/productModel";
 
 export default function Page() {
   const searchParams = useSearchParams();
@@ -76,6 +90,16 @@ export default function Page() {
   const [productCategoryFilter, setProductCategoryFilter] = useState("all");
   const { role } = useAuth();
   const isAdmin = isAdminRole(role);
+
+  // Import states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importPreview, setImportPreview] = useState({
+    components: [],
+    products: [],
+  });
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   const parcelTableRef = useRef(null);
   const productTableRef = useRef(null);
@@ -246,6 +270,263 @@ export default function Page() {
     low: productItems.filter((item) => item.quantity > 5 && item.quantity < 10)
       .length,
     available: productItems.filter((item) => item.quantity >= 10).length,
+  };
+
+  // ===================== IMPORT FUNCTIONS =====================
+
+  const parseExcelDate = (value) => {
+    if (!value && value !== 0) return new Date().toISOString().split("T")[0];
+    if (typeof value === "string" && value.includes("-")) return value;
+    if (typeof value === "string" && value.includes("/")) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+    }
+    const num = Number(value);
+    if (!isNaN(num) && num > 1000) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const date = new Date(excelEpoch.getTime() + num * 86400000);
+      if (!isNaN(date.getTime())) return date.toISOString().split("T")[0];
+    }
+    return new Date().toISOString().split("T")[0];
+  };
+
+  const handleImportFile = (file) => {
+    if (!file) return;
+    setImportFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const wb = XLSX.read(e.target.result, { type: "array" });
+      let components = [];
+      let products = [];
+
+      wb.SheetNames.forEach((sheetName) => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
+          defval: "",
+          raw: true,
+        });
+        const key = sheetName.toLowerCase();
+        if (key.includes("component") || key.includes("comp")) {
+          components = rows.map((row) => ({
+            name: row["Item Name"] || row["item_name"] || row["name"] || "",
+            quantity: parseInt(row["Stock Quantity"] || row["quantity"] || 0),
+            status: row["Status"] || "",
+            date: parseExcelDate(row["Date Added"] || row["date"]),
+            category: row["Category"] || row["category"] || "",
+          }));
+        } else if (key.includes("product") || key.includes("prod")) {
+          products = rows.map((row) => ({
+            product_name: row["Product Name"] || row["product_name"] || "",
+            quantity: parseInt(row["Stock Quantity"] || row["quantity"] || 0),
+            status: row["Status"] || "",
+            date: parseExcelDate(row["Date Added"] || row["date"]),
+            category: row["Category"] || row["category"] || "",
+          }));
+        } else {
+          if (!components.length) {
+            components = rows.map((row) => ({
+              name: row["Item Name"] || row["item_name"] || row["name"] || "",
+              quantity: parseInt(row["Stock Quantity"] || row["quantity"] || 0),
+              status: row["Status"] || "",
+              date: parseExcelDate(row["Date Added"] || row["date"]),
+              category: row["Category"] || row["category"] || "",
+            }));
+          } else {
+            products = rows.map((row) => ({
+              product_name: row["Product Name"] || row["product_name"] || "",
+              quantity: parseInt(row["Stock Quantity"] || row["quantity"] || 0),
+              status: row["Status"] || "",
+              date: parseExcelDate(row["Date Added"] || row["date"]),
+              category: row["Category"] || row["category"] || "",
+            }));
+          }
+        }
+      });
+
+      setImportPreview({ components, products });
+      setShowImportModal(true);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const confirmImport = async () => {
+    setImportLoading(true);
+    setImportResult(null);
+
+    const today = new Date().toISOString().split("T")[0];
+    const timeNow = new Date().toTimeString().split(" ")[0];
+
+    let compAdded = 0;
+    let compUpdated = 0;
+    let compDeleted = 0;
+    let prodAdded = 0;
+    let prodUpdated = 0;
+    let prodDeleted = 0;
+    const errors = [];
+
+    // ===== COMPONENTS — FULL SYNC (parcel_in table) =====
+    const { data: existingParcels } = await getParcelInItems();
+    const existingParcelList = existingParcels || [];
+
+    // Build a map of unique names in Excel (lowercase)
+    const excelCompNames = new Set(
+      importPreview.components
+        .filter((i) => i.name)
+        .map((i) => i.name.toLowerCase()),
+    );
+
+    // DELETE: items in DB but not in Excel
+    // Group by item_name — only delete once per unique name
+    const deletedCompNames = new Set();
+    for (const existing of existingParcelList) {
+      const nameKey = (existing.item_name || "").toLowerCase();
+      if (!excelCompNames.has(nameKey) && !deletedCompNames.has(nameKey)) {
+        const result = await deleteParcelInItem(existing.id);
+        if (result.error) {
+          errors.push(`Failed to delete component: ${existing.item_name}`);
+        } else {
+          deletedCompNames.add(nameKey);
+          compDeleted++;
+        }
+      } else if (
+        !excelCompNames.has(nameKey) &&
+        deletedCompNames.has(nameKey)
+      ) {
+        // Delete duplicate rows with same name
+        await deleteParcelInItem(existing.id);
+      }
+    }
+
+    // ADD / UPDATE
+    for (const item of importPreview.components) {
+      if (!item.name) continue;
+
+      // Re-fetch to get fresh list after deletes
+      const match = existingParcelList.find(
+        (e) => (e.item_name || "").toLowerCase() === item.name.toLowerCase(),
+      );
+
+      if (match) {
+        const result = await updateParcelInItem(match.id, {
+          quantity: Number(item.quantity),
+        });
+        if (result.error) {
+          errors.push(`Failed to update component: ${item.name}`);
+        } else {
+          compUpdated++;
+        }
+      } else {
+        const result = await addParcelInItem({
+          item_name: item.name,
+          quantity: Number(item.quantity),
+          date: item.date || today,
+          time_in: timeNow,
+          category: item.category || "Others",
+          shipping_mode: null,
+          client_name: null,
+          price: null,
+        });
+        if (result.error) {
+          errors.push(
+            `Failed to add component: ${item.name} — ${result.error.message || "unknown error"}`,
+          );
+        } else {
+          compAdded++;
+        }
+      }
+    }
+
+    // ===== PRODUCTS — FULL SYNC (product_in table) =====
+    const allProducts = await getProductIn();
+    const existingProductList = Array.isArray(allProducts) ? allProducts : [];
+
+    // Build unique product names from Excel
+    const excelProdNames = new Set(
+      importPreview.products
+        .filter((i) => i.product_name)
+        .map((i) => i.product_name.toLowerCase()),
+    );
+
+    // DELETE: products in DB but not in Excel
+    const deletedProdNames = new Set();
+    for (const existing of existingProductList) {
+      const nameKey = (existing.product_name || "").toLowerCase();
+      if (!excelProdNames.has(nameKey) && !deletedProdNames.has(nameKey)) {
+        const result = await deleteProductInByName(existing.product_name);
+        if (!result.success) {
+          errors.push(`Failed to delete product: ${existing.product_name}`);
+        } else {
+          deletedProdNames.add(nameKey);
+          prodDeleted++;
+        }
+      }
+    }
+
+    // ADD / UPDATE
+    for (const item of importPreview.products) {
+      if (!item.product_name) continue;
+
+      const existing = existingProductList.find(
+        (e) =>
+          (e.product_name || "").toLowerCase() ===
+          item.product_name.toLowerCase(),
+      );
+
+      if (existing) {
+        const result = await updateProductInQuantity(
+          existing.id,
+          item.quantity,
+        );
+        if (!result.success) {
+          errors.push(`Failed to update product: ${item.product_name}`);
+        } else {
+          prodUpdated++;
+        }
+      } else {
+        const result = await upsertProductIn({
+          product_name: item.product_name,
+          quantity: Number(item.quantity),
+          date: item.date || today,
+          time_in: timeNow,
+          category: item.category || "Others",
+          components: [],
+          shipping_mode: null,
+          client_name: null,
+          description: null,
+          price: null,
+        });
+        if (result?.__error) {
+          errors.push(
+            `Failed to add product: ${item.product_name} — ${result.__error}`,
+          );
+        } else {
+          prodAdded++;
+        }
+      }
+    }
+
+    // Reload fresh data from Supabase
+    await loadItems();
+
+    setImportLoading(false);
+    setImportResult({
+      compAdded,
+      compUpdated,
+      compDeleted,
+      prodAdded,
+      prodUpdated,
+      prodDeleted,
+      errors,
+    });
+
+    // Auto-close after 2.5 seconds if no errors
+    if (errors.length === 0) {
+      setTimeout(() => {
+        setShowImportModal(false);
+        setImportFile(null);
+        setImportPreview({ components: [], products: [] });
+        setImportResult(null);
+      }, 2500);
+    }
   };
 
   // ===================== EXPORT FUNCTIONS =====================
@@ -549,20 +830,33 @@ export default function Page() {
                 </p>
               </div>
 
-              {/* Export Button */}
-              <button
-                onClick={handleExportClick}
-                disabled={!isAdmin}
-                className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                  isAdmin
-                    ? "bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white hover:shadow-xl hover:scale-105 active:scale-95"
-                    : "bg-gray-400 text-white cursor-not-allowed"
-                }`}
-              >
-                <FileDown className="w-4 h-4" />
-                Export Inventory
-                <ChevronDown className="w-4 h-4" />
-              </button>
+              {/* Export + Import Buttons */}
+              <div className="flex items-center gap-3 flex-wrap justify-center">
+                <button
+                  onClick={handleExportClick}
+                  disabled={!isAdmin}
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    isAdmin
+                      ? "bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] text-white hover:shadow-xl hover:scale-105 active:scale-95"
+                      : "bg-gray-400 text-white cursor-not-allowed"
+                  }`}
+                >
+                  <FileDown className="w-4 h-4" />
+                  Export Inventory
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                <label className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium bg-gradient-to-r from-[#0f766e] to-[#0d9488] text-white hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  Import Excel
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                    onChange={(e) => handleImportFile(e.target.files[0])}
+                  />
+                </label>
+              </div>
             </div>
 
             {/* Alert Banner */}
@@ -1208,7 +1502,6 @@ export default function Page() {
             <div
               className={`relative z-10 w-full max-w-md rounded-2xl border shadow-2xl p-6 ${darkMode ? "bg-[#1F2937] border-[#374151] text-white" : "bg-white border-[#E5E7EB] text-black"}`}
             >
-              {/* Modal Header */}
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 rounded-lg bg-[#7c3aed]/10">
                   <FileDown className="w-5 h-5 text-[#7c3aed]" />
@@ -1227,7 +1520,6 @@ export default function Page() {
                 className={`h-px my-4 ${darkMode ? "bg-[#374151]" : "bg-[#E5E7EB]"}`}
               />
 
-              {/* Export Options */}
               <div className="space-y-2">
                 {exportOptions.map((option) => (
                   <button
@@ -1269,6 +1561,290 @@ export default function Page() {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============= IMPORT MODAL ============= */}
+        {showImportModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowImportModal(false)}
+            />
+            <div
+              className={`relative z-10 w-full max-w-lg rounded-2xl border shadow-2xl p-6 max-h-[80vh] overflow-y-auto ${
+                darkMode
+                  ? "bg-[#1F2937] border-[#374151] text-white"
+                  : "bg-white border-[#E5E7EB] text-black"
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-teal-500/10">
+                  <Upload className="w-5 h-5 text-teal-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Import Preview</h3>
+                  <p
+                    className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    Review data before importing
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className={`h-px mb-4 ${darkMode ? "bg-[#374151]" : "bg-[#E5E7EB]"}`}
+              />
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div
+                  className={`p-3 rounded-xl ${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                >
+                  <p
+                    className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    Components
+                  </p>
+                  <p className="text-xl font-bold text-blue-500">
+                    {importPreview.components.length}
+                  </p>
+                  <p
+                    className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    items found
+                  </p>
+                </div>
+                <div
+                  className={`p-3 rounded-xl ${darkMode ? "bg-[#374151]" : "bg-gray-50"}`}
+                >
+                  <p
+                    className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    Products
+                  </p>
+                  <p className="text-xl font-bold text-purple-500">
+                    {importPreview.products.length}
+                  </p>
+                  <p
+                    className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    items found
+                  </p>
+                </div>
+              </div>
+
+              {/* Components Preview Table */}
+              {importPreview.components.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-semibold mb-2 text-blue-500">
+                    Components
+                  </p>
+                  <div
+                    className={`rounded-xl overflow-hidden border ${darkMode ? "border-[#374151]" : "border-[#E5E7EB]"}`}
+                  >
+                    <table className="w-full text-xs">
+                      <thead
+                        className={
+                          darkMode
+                            ? "bg-[#374151] text-gray-300"
+                            : "bg-[#1e40af] text-white"
+                        }
+                      >
+                        <tr>
+                          <th className="px-3 py-2 text-left">Item Name</th>
+                          <th className="px-3 py-2 text-left">Qty</th>
+                          <th className="px-3 py-2 text-left">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody
+                        className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}`}
+                      >
+                        {importPreview.components.slice(0, 5).map((item, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-2">{item.name || "—"}</td>
+                            <td className="px-3 py-2">{item.quantity}</td>
+                            <td className="px-3 py-2">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(item.quantity, darkMode)}`}
+                              >
+                                {getStatusLabel(item.quantity)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                        {importPreview.components.length > 5 && (
+                          <tr>
+                            <td
+                              colSpan={3}
+                              className={`px-3 py-2 text-center ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                            >
+                              +{importPreview.components.length - 5} more items
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Products Preview Table */}
+              {importPreview.products.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-semibold mb-2 text-purple-500">
+                    Products
+                  </p>
+                  <div
+                    className={`rounded-xl overflow-hidden border ${darkMode ? "border-[#374151]" : "border-[#E5E7EB]"}`}
+                  >
+                    <table className="w-full text-xs">
+                      <thead
+                        className={
+                          darkMode
+                            ? "bg-[#374151] text-gray-300"
+                            : "bg-[#7c3aed] text-white"
+                        }
+                      >
+                        <tr>
+                          <th className="px-3 py-2 text-left">Product Name</th>
+                          <th className="px-3 py-2 text-left">Qty</th>
+                          <th className="px-3 py-2 text-left">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody
+                        className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}`}
+                      >
+                        {importPreview.products.slice(0, 5).map((item, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-2">
+                              {item.product_name || "—"}
+                            </td>
+                            <td className="px-3 py-2">{item.quantity}</td>
+                            <td className="px-3 py-2">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(item.quantity, darkMode)}`}
+                              >
+                                {getStatusLabel(item.quantity)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                        {importPreview.products.length > 5 && (
+                          <tr>
+                            <td
+                              colSpan={3}
+                              className={`px-3 py-2 text-center ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                            >
+                              +{importPreview.products.length - 5} more items
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <p
+                className={`text-xs mb-4 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+              >
+                Existing items will be updated. New items will be added.
+              </p>
+
+              {/* Result Message */}
+              {importResult && (
+                <div
+                  className={`mb-4 p-3 rounded-xl text-sm ${
+                    importResult.errors.length > 0
+                      ? darkMode
+                        ? "bg-red-900/20 border border-red-800 text-red-300"
+                        : "bg-red-50 border border-red-200 text-red-700"
+                      : darkMode
+                        ? "bg-green-900/20 border border-green-800 text-green-300"
+                        : "bg-green-50 border border-green-200 text-green-700"
+                  }`}
+                >
+                  {importResult.errors.length === 0 ? (
+                    <div>
+                      <p className="font-semibold mb-1">Import successful!</p>
+                      <p className="text-xs">
+                        Components: {importResult.compAdded} added,{" "}
+                        {importResult.compUpdated} updated,{" "}
+                        {importResult.compDeleted} deleted
+                      </p>
+                      <p className="text-xs">
+                        Products: {importResult.prodAdded} added,{" "}
+                        {importResult.prodUpdated} updated,{" "}
+                        {importResult.prodDeleted} deleted
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-semibold mb-1">
+                        Completed with errors:
+                      </p>
+                      {importResult.errors.map((e, i) => (
+                        <p key={i} className="text-xs">
+                          • {e}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmImport}
+                  disabled={importLoading}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#0f766e] to-[#0d9488] text-white hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {importLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin w-4 h-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8z"
+                        />
+                      </svg>
+                      Importing...
+                    </>
+                  ) : (
+                    "Confirm Import"
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                    setImportResult(null);
+                  }}
+                  disabled={importLoading}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-60 ${
+                    darkMode
+                      ? "bg-[#374151] hover:bg-[#4B5563] text-gray-300"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}

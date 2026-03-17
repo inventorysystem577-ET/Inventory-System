@@ -5,7 +5,10 @@ const normalizeName = (value = "") =>
 
 const toNumber = (value) => Number(value || 0);
 
-const formatSupabaseError = (error, fallback = "Database operation failed.") => {
+const formatSupabaseError = (
+  error,
+  fallback = "Database operation failed.",
+) => {
   if (!error) return fallback;
   const code = error.code || "";
   const message = error.message || "";
@@ -26,7 +29,9 @@ const formatSupabaseError = (error, fallback = "Database operation failed.") => 
 };
 
 const parseComponentCandidates = (componentName) => {
-  const raw = (componentName || "").split(/\s+or\s+/i).map((item) => item.trim());
+  const raw = (componentName || "")
+    .split(/\s+or\s+/i)
+    .map((item) => item.trim());
   return raw.filter(Boolean);
 };
 
@@ -35,7 +40,10 @@ const cloneStockRows = (rows) =>
     ...row,
     quantity: toNumber(row.quantity),
     original_quantity: toNumber(row.quantity),
-    price: row.price === null || row.price === undefined ? null : toNumber(row.price),
+    price:
+      row.price === null || row.price === undefined
+        ? null
+        : toNumber(row.price),
   }));
 
 const totalAvailableForCandidate = (rows, candidateName) => {
@@ -43,6 +51,50 @@ const totalAvailableForCandidate = (rows, candidateName) => {
   return rows
     .filter((row) => normalizeName(row.item_name) === candidateKey)
     .reduce((sum, row) => sum + toNumber(row.quantity), 0);
+};
+
+// ===============================
+//   UPDATE PRODUCT IN QUANTITY
+// ===============================
+export const updateProductInQuantity = async (id, quantity) => {
+  const { data, error } = await supabase
+    .from("product_in")
+    .update({ quantity: Number(quantity) })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("updateProductInQuantity error:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return { success: false, error };
+  }
+  return { success: true, data };
+};
+
+// ===============================
+//   DELETE PRODUCT IN BY NAME
+// ===============================
+export const deleteProductInByName = async (product_name) => {
+  const { error } = await supabase
+    .from("product_in")
+    .delete()
+    .eq("product_name", product_name);
+
+  if (error) {
+    console.error("deleteProductInByName error:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return { success: false, error };
+  }
+  return { success: true };
 };
 
 const consumeCandidateStock = (rows, candidateName, requiredQty) => {
@@ -126,9 +178,16 @@ export const reserveComponentsFromStock = async ({
     if (candidates.length === 0) continue;
 
     const primaryName = candidates[0];
-    const primaryAvailable = totalAvailableForCandidate(workingRows, primaryName);
+    const primaryAvailable = totalAvailableForCandidate(
+      workingRows,
+      primaryName,
+    );
 
-    const primaryConsumption = consumeCandidateStock(workingRows, primaryName, neededQty);
+    const primaryConsumption = consumeCandidateStock(
+      workingRows,
+      primaryName,
+      neededQty,
+    );
     if (primaryConsumption.consumed > 0) {
       stockDeductions.push(...primaryConsumption.operations);
     }
@@ -186,7 +245,11 @@ export const reserveComponentsFromStock = async ({
       continue;
     }
 
-    if (!alternativeUsed && primaryConsumption.consumed < neededQty && candidates.length === 1) {
+    if (
+      !alternativeUsed &&
+      primaryConsumption.consumed < neededQty &&
+      candidates.length === 1
+    ) {
       missingComponents.push({
         component: componentName,
         needed: neededQty,
@@ -216,15 +279,17 @@ export const reserveComponentsFromStock = async ({
     };
   }
 
-  const originalById = new Map((parcelInRows || []).map((row) => [row.id, toNumber(row.quantity)]));
+  const originalById = new Map(
+    (parcelInRows || []).map((row) => [row.id, toNumber(row.quantity)]),
+  );
   const updates = workingRows
     .filter((row) => originalById.get(row.id) !== toNumber(row.quantity))
     .map((row) =>
-    supabase
-      .from("parcel_in")
-      .update({ quantity: toNumber(row.quantity) })
-      .eq("id", row.id),
-  );
+      supabase
+        .from("parcel_in")
+        .update({ quantity: toNumber(row.quantity) })
+        .eq("id", row.id),
+    );
 
   const updateResults = await Promise.all(updates);
   const failedUpdate = updateResults.find((result) => result.error);
@@ -262,7 +327,9 @@ export const reserveComponentsFromStock = async ({
   }));
 
   if (logs.length > 0) {
-    const { error: parcelOutError } = await supabase.from("parcel_out").insert(logs);
+    const { error: parcelOutError } = await supabase
+      .from("parcel_out")
+      .insert(logs);
     if (parcelOutError) {
       console.error("Supabase insert error:", parcelOutError);
       return {
@@ -288,14 +355,21 @@ export const reserveComponentsFromStock = async ({
         PRODUCT IN MODEL
 ================================*/
 
-// Insert Product In as a separate transaction row
 export const upsertProductIn = async (data) => {
   const payload = {
-    ...data,
+    product_name: data.product_name,
+    quantity: Number(data.quantity ?? 0),
+    date: data.date || new Date().toISOString().split("T")[0],
+    time_in: data.time_in || new Date().toTimeString().split(" ")[0],
+    components: JSON.stringify(
+      Array.isArray(data.components) ? data.components : [],
+    ),
     shipping_mode: data.shipping_mode || null,
     client_name: data.client_name || null,
-    description: data.description || null,
-    category: data.category || 'Others',
+    description: data.description
+      ? data.description.toString().trim() || null
+      : null,
+    category: data.category || "Others",
     price:
       data.price === "" || data.price === null || data.price === undefined
         ? null
@@ -308,19 +382,18 @@ export const upsertProductIn = async (data) => {
     .select();
 
   if (insertError) {
-    console.error("Supabase insert error:", {
-      code: insertError.code,
-      message: insertError.message,
-      details: insertError.details,
-      hint: insertError.hint,
-    });
-    return { __error: formatSupabaseError(insertError, "Error adding/updating product") };
+    console.error("upsertProductIn error:", JSON.stringify(insertError));
+    return {
+      __error: formatSupabaseError(
+        insertError,
+        "Error adding/updating product",
+      ),
+    };
   }
 
   return insertedData[0];
 };
 
-// Get all Product In records
 export const getProductIn = async () => {
   const { data, error } = await supabase
     .from("product_in")
@@ -346,10 +419,7 @@ export const deleteAllProductInItems = async () => {
     .not("id", "is", null)
     .select("id");
 
-  if (error) {
-    return { success: false, error };
-  }
-
+  if (error) return { success: false, error };
   return { success: true, deletedCount: Array.isArray(data) ? data.length : 0 };
 };
 
@@ -365,9 +435,12 @@ export const updateProductInDescription = async (id, description) => {
     .single();
 
   if (error) {
-    return { success: false, error, message: formatSupabaseError(error, "Failed to update description.") };
+    return {
+      success: false,
+      error,
+      message: formatSupabaseError(error, "Failed to update description."),
+    };
   }
-
   return { success: true, data };
 };
 
@@ -397,10 +470,12 @@ export const restoreProductInItems = async (rows = []) => {
     .select("id");
 
   if (error) return { success: false, error };
-  return { success: true, insertedCount: Array.isArray(data) ? data.length : 0 };
+  return {
+    success: true,
+    insertedCount: Array.isArray(data) ? data.length : 0,
+  };
 };
 
-// Get specific product by name
 export const getProductInByName = async (product_name) => {
   const { data, error } = await supabase
     .from("product_in")
@@ -425,7 +500,6 @@ export const getProductInByName = async (product_name) => {
   };
 };
 
-// Deduct quantity and components from Product In
 export const deductProductIn = async (product_name, quantity) => {
   const requestedQty = toNumber(quantity);
   const { data: productRows, error } = await supabase
@@ -441,7 +515,10 @@ export const deductProductIn = async (product_name, quantity) => {
   }
 
   const rows = productRows || [];
-  const totalAvailable = rows.reduce((sum, row) => sum + toNumber(row.quantity), 0);
+  const totalAvailable = rows.reduce(
+    (sum, row) => sum + toNumber(row.quantity),
+    0,
+  );
 
   if (totalAvailable < requestedQty) {
     return {
@@ -482,18 +559,12 @@ export const deductProductIn = async (product_name, quantity) => {
         deductedComponentsMap.set(comp.name, previous + deductAmount);
       }
 
-      return {
-        name: comp.name,
-        quantity: nextQty,
-      };
+      return { name: comp.name, quantity: nextQty };
     });
 
     const { error: updateError } = await supabase
       .from("product_in")
-      .update({
-        quantity: newQuantity,
-        components: remainingComponents,
-      })
+      .update({ quantity: newQuantity, components: remainingComponents })
       .eq("id", row.id);
 
     if (updateError) {
@@ -505,10 +576,7 @@ export const deductProductIn = async (product_name, quantity) => {
   }
 
   const deductedComponents = Array.from(deductedComponentsMap.entries()).map(
-    ([name, qty]) => ({
-      name,
-      quantity: qty,
-    }),
+    ([name, qty]) => ({ name, quantity: qty }),
   );
 
   return {
@@ -523,7 +591,6 @@ export const deductProductIn = async (product_name, quantity) => {
         PRODUCT OUT MODEL
 ================================*/
 
-// Insert a new Product Out
 export const insertProductOut = async (data) => {
   const payload = {
     ...data,
@@ -554,7 +621,6 @@ export const insertProductOut = async (data) => {
   return { data: insertedData, error: null };
 };
 
-// Get all Product Out records
 export const getProductOut = async () => {
   const { data, error } = await supabase
     .from("products_out")
@@ -611,5 +677,8 @@ export const restoreProductOutItems = async (rows = []) => {
     .select("id");
 
   if (error) return { success: false, error };
-  return { success: true, insertedCount: Array.isArray(data) ? data.length : 0 };
+  return {
+    success: true,
+    insertedCount: Array.isArray(data) ? data.length : 0,
+  };
 };
