@@ -9,6 +9,8 @@ import TopNavbar from "../../components/TopNavbar";
 import {
   ShieldCheck,
   Search,
+  Undo2,
+  Bug,
   Pencil,
   Trash2,
   UserCheck,
@@ -44,6 +46,12 @@ import {
   updateParcelOutItem,
   deleteParcelOutItem,
 } from "../../controller/parcelDelivery";
+import {
+  loadAdminUndoHistory,
+  saveDeletedAdminRecord,
+  removeAdminUndoRecord,
+  setAdminUndoDebugExpiry,
+} from "../../utils/adminUndo";
 
 const TABS = [
   { key: "products-in", label: "Products In", icon: PackageCheck },
@@ -56,11 +64,19 @@ const APPROVAL_TABLES = ["user_profiles", "access_requests_temp"];
 
 const ITEMS_PER_PAGE = 10;
 
+const TAB_META = {
+  "products-in": { table: "product_in", label: "Products In", nameKey: "product_name" },
+  "products-out": { table: "products_out", label: "Products Out", nameKey: "product_name" },
+  "components-in": { table: "parcel_in", label: "Components In", nameKey: "item_name" },
+  "components-out": { table: "parcel_out", label: "Components Out", nameKey: "item_name" },
+  users: { table: "user_profiles", label: "Users", nameKey: "name" },
+};
+
 export default function AdminPanelPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState("products-in");
-  const { role, loading } = useAuth();
+  const { role, loading, userEmail } = useAuth();
   const router = useRouter();
   const isAdmin = isAdminRole(role);
 
@@ -89,6 +105,10 @@ export default function AdminPanelPage() {
 
   // Feedback
   const [feedback, setFeedback] = useState({ type: "", message: "" });
+  const [undoModalOpen, setUndoModalOpen] = useState(false);
+  const [undoHistory, setUndoHistory] = useState([]);
+  const [restoringUndoId, setRestoringUndoId] = useState(null);
+  const [debugExpiring, setDebugExpiring] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
@@ -100,6 +120,152 @@ export default function AdminPanelPage() {
       router.replace("/view/dashboard");
     }
   }, [loading, isAdmin, router]);
+
+  const refreshUndoHistory = useCallback(async () => {
+    const history = await loadAdminUndoHistory();
+    setUndoHistory(Array.isArray(history) ? history : []);
+  }, []);
+
+  useEffect(() => {
+    refreshUndoHistory();
+    const intervalId = setInterval(() => {
+      refreshUndoHistory();
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [refreshUndoHistory]);
+
+  const buildDeleteSnapshot = useCallback((item, tabKey, usersTab) => {
+    const meta = TAB_META[tabKey] || TAB_META["products-in"];
+    if (usersTab) {
+      const sourceTable = item.__sourceTable || "user_profiles";
+      return {
+        label: item.name || item.email || `#${item.id}`,
+        tabKey: "users",
+        table: sourceTable,
+        payload: {
+          name: item.name || null,
+          email: item.email || null,
+          role: item.role || "staff",
+          is_approved: item.is_approved ?? item.status === "approved",
+          rejected_at: item.rejected_at || null,
+          approved_at: item.approved_at || null,
+          created_at: item.created_at || null,
+        },
+      };
+    }
+
+    const nameValue = item[meta.nameKey] || item.name || `#${item.id}`;
+    if (meta.table === "product_in") {
+      return {
+        label: String(nameValue),
+        tabKey,
+        table: meta.table,
+        payload: {
+          product_name: item.product_name || null,
+          quantity: Number(item.quantity ?? 0),
+          date: item.date || null,
+          time_in: item.time_in || null,
+          components: Array.isArray(item.components) ? item.components : item.components || [],
+          shipping_mode: item.shipping_mode || null,
+          client_name: item.client_name || null,
+          description: item.description || null,
+          price: item.price === "" || item.price === undefined ? null : item.price,
+          category: item.category || "Others",
+        },
+      };
+    }
+
+    if (meta.table === "products_out") {
+      return {
+        label: String(nameValue),
+        tabKey,
+        table: meta.table,
+        payload: {
+          product_name: item.product_name || null,
+          quantity: Number(item.quantity ?? 0),
+          date: item.date || null,
+          time_out: item.time_out || null,
+          components: Array.isArray(item.components) ? item.components : item.components || [],
+          shipping_mode: item.shipping_mode || null,
+          client_name: item.client_name || null,
+          description: item.description || null,
+          price: item.price === "" || item.price === undefined ? null : item.price,
+          category: item.category || "Others",
+        },
+      };
+    }
+
+    if (meta.table === "parcel_in") {
+      return {
+        label: String(nameValue),
+        tabKey,
+        table: meta.table,
+        payload: {
+          item_name: item.item_name || item.name || null,
+          quantity: Number(item.quantity ?? 0),
+          date: item.date || null,
+          time_in: item.time_in || item.timeIn || null,
+          shipping_mode: item.shipping_mode || null,
+          client_name: item.client_name || null,
+          price: item.price === "" || item.price === undefined ? null : item.price,
+          category: item.category || "Others",
+        },
+      };
+    }
+
+    return {
+      label: String(nameValue),
+      tabKey,
+      table: meta.table,
+      payload: {
+        item_name: item.item_name || item.name || null,
+        quantity: Number(item.quantity ?? 0),
+        date: item.date || null,
+        time_out: item.time_out || item.timeOut || null,
+        shipping_mode: item.shipping_mode || null,
+        client_name: item.client_name || null,
+        price: item.price === "" || item.price === undefined ? null : item.price,
+        category: item.category || "Others",
+      },
+    };
+  }, []);
+
+  const restoreDeletedRecord = useCallback(async (entry) => {
+    const table = entry?.table;
+    const payload = entry?.payload || {};
+    if (!table) {
+      return { error: { message: "Invalid undo record." } };
+    }
+    return await supabase.from(table).insert([payload]);
+  }, []);
+
+  const handleRestoreFromHistory = async (entry) => {
+    if (!entry?.id) return;
+    setRestoringUndoId(entry.id);
+    const { error } = await restoreDeletedRecord(entry);
+    if (error) {
+      setFeedback({ type: "error", message: `Restore failed: ${error.message || "Unknown error"}` });
+      setRestoringUndoId(null);
+      return;
+    }
+
+    await removeAdminUndoRecord(entry.id);
+    await refreshUndoHistory();
+    await loadAllData();
+    setFeedback({ type: "success", message: "Record restored successfully." });
+    setRestoringUndoId(null);
+  };
+
+  const handleDebugUndoExpiry = async () => {
+    setDebugExpiring(true);
+    await setAdminUndoDebugExpiry(1);
+    await refreshUndoHistory();
+    setFeedback({
+      type: "success",
+      message: "Undo records set to expire in 1 minute (debug mode).",
+    });
+    setDebugExpiring(false);
+  };
 
   const fetchUserProfiles = useCallback(async () => {
     const tableRows = [];
@@ -440,6 +606,7 @@ export default function AdminPanelPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
+    const undoSnapshot = buildDeleteSnapshot(deleteTarget, activeTab, isUsersTab);
 
     if (isUsersTab) {
       const { error } = await deleteUserProfile(deleteTarget.id, deleteTarget.__sourceTable);
@@ -449,7 +616,21 @@ export default function AdminPanelPage() {
         return;
       }
 
-      setFeedback({ type: "success", message: "User deleted from profile list." });
+      const undoSaveResult = await saveDeletedAdminRecord({
+        ...undoSnapshot,
+        deletedBy: userEmail || null,
+      });
+
+      if (!undoSaveResult?.success) {
+        setFeedback({
+          type: "error",
+          message: `User deleted, but undo archive failed: ${undoSaveResult?.error?.message || "Unknown error"}`,
+        });
+      } else {
+        setFeedback({ type: "success", message: "User deleted from profile list." });
+      }
+
+      await refreshUndoHistory();
       closeDelete();
       await loadAllData();
       return;
@@ -477,7 +658,21 @@ export default function AdminPanelPage() {
       return;
     }
 
-    setFeedback({ type: "success", message: "Record deleted." });
+    const undoSaveResult = await saveDeletedAdminRecord({
+      ...undoSnapshot,
+      deletedBy: userEmail || null,
+    });
+
+    if (!undoSaveResult?.success) {
+      setFeedback({
+        type: "error",
+        message: `Record deleted, but undo archive failed: ${undoSaveResult?.error?.message || "Unknown error"}`,
+      });
+    } else {
+      setFeedback({ type: "success", message: "Record deleted." });
+    }
+
+    await refreshUndoHistory();
     closeDelete();
     await loadAllData();
   };
@@ -489,6 +684,38 @@ export default function AdminPanelPage() {
     }`;
 
   const subtextClass = darkMode ? "text-gray-400" : "text-gray-600";
+
+  const formatUndoDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString();
+  };
+
+  const getTimeUntilExpiry = (expiresAt) => {
+    if (!expiresAt) return "-";
+    const expiryDate = new Date(expiresAt);
+    if (Number.isNaN(expiryDate.getTime())) return "-";
+
+    const remainingMs = expiryDate.getTime() - Date.now();
+    const absolute = expiryDate.toLocaleString();
+
+    if (remainingMs <= 0) return `${absolute} (expired)`;
+
+    const totalMinutes = Math.floor(remainingMs / 60000);
+    if (totalMinutes < 1) return `${absolute} (<1 min left)`;
+    if (totalMinutes < 60) return `${absolute} (${totalMinutes} min left)`;
+
+    const totalHours = Math.floor(totalMinutes / 60);
+    if (totalHours < 24) return `${absolute} (${totalHours} hr left)`;
+
+    const totalDays = Math.floor(totalHours / 24);
+    return `${absolute} (${totalDays} day${totalDays > 1 ? "s" : ""} left)`;
+  };
+
+  const getUndoTypeLabel = (tabKey) => {
+    return TAB_META[tabKey]?.label || "Unknown";
+  };
 
   if (!isAdmin) {
     return (
@@ -531,13 +758,48 @@ export default function AdminPanelPage() {
           <div className="p-4 sm:p-6 lg:p-8">
             {/* Header */}
             <div className={`${cardClass()} p-6 mb-6`}>
-              <div className="flex items-center gap-3 mb-1">
-                <ShieldCheck className="w-6 h-6 text-[#2563EB]" />
-                <h1 className="text-2xl font-bold">Admin Control Panel</h1>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <ShieldCheck className="w-6 h-6 text-[#2563EB]" />
+                    <h1 className="text-2xl font-bold">Admin Control Panel</h1>
+                  </div>
+                  <p className={`text-sm ${subtextClass}`}>
+                    Edit, delete, and manage inventory records plus user approvals.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await refreshUndoHistory();
+                      setUndoModalOpen(true);
+                    }}
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      darkMode
+                        ? "bg-[#374151] text-gray-200 hover:bg-[#4B5563]"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Undo2 className="w-4 h-4" />
+                    Undo / Restore ({undoHistory.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDebugUndoExpiry}
+                    disabled={debugExpiring || undoHistory.length === 0}
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                      darkMode
+                        ? "bg-amber-900/40 text-amber-300 hover:bg-amber-900/60"
+                        : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                    }`}
+                  >
+                    <Bug className="w-4 h-4" />
+                    Debug 1m Expiry
+                  </button>
+                </div>
               </div>
-              <p className={`text-sm ${subtextClass}`}>
-                Edit, delete, and manage inventory records plus user approvals.
-              </p>
             </div>
 
             {/* Feedback Banner */}
@@ -816,6 +1078,83 @@ export default function AdminPanelPage() {
             </div>
           </div>
         </div>
+
+        {/* ====== UNDO / RESTORE MODAL ====== */}
+        {undoModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div
+              className={`w-full max-w-5xl rounded-xl border shadow-2xl ${
+                darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"
+              }`}
+            >
+              <div className={`flex items-center justify-between px-6 py-4 border-b ${
+                darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+              }`}>
+                <div>
+                  <h2 className="font-semibold text-lg">Deleted Records (Undo / Restore)</h2>
+                  <p className={`text-xs mt-1 ${subtextClass}`}>
+                    Records auto-expire after 30 days.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUndoModalOpen(false)}
+                  className="p-1 rounded-lg hover:bg-gray-500/20"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="px-6 py-5 max-h-[65vh] overflow-y-auto">
+                {undoHistory.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className={`text-sm ${subtextClass}`}>
+                      No deleted records are available for restore.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className={darkMode ? "bg-[#374151]/50" : "bg-[#F9FAFB]"}>
+                          <th className={`px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider ${subtextClass}`}>Name</th>
+                          <th className={`px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider ${subtextClass}`}>Type</th>
+                          <th className={`px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider ${subtextClass}`}>Deleted At</th>
+                          <th className={`px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider ${subtextClass}`}>Expires At</th>
+                          <th className={`px-4 py-3 text-right font-semibold text-xs uppercase tracking-wider ${subtextClass}`}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {undoHistory.map((entry) => (
+                          <tr
+                            key={entry.id}
+                            className={`${darkMode ? "hover:bg-[#374151]/30" : "hover:bg-[#F9FAFB]"}`}
+                          >
+                            <td className="px-4 py-3 font-medium">{entry.label || "-"}</td>
+                            <td className="px-4 py-3">{getUndoTypeLabel(entry.tabKey)}</td>
+                            <td className="px-4 py-3">{formatUndoDate(entry.deletedAt)}</td>
+                            <td className="px-4 py-3">{getTimeUntilExpiry(entry.expiresAt)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreFromHistory(entry)}
+                                disabled={restoringUndoId === entry.id}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-50 transition-colors"
+                              >
+                                <Undo2 className="w-3.5 h-3.5" />
+                                {restoringUndoId === entry.id ? "Restoring..." : "Restore"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ====== EDIT MODAL ====== */}
         {editItem && (
