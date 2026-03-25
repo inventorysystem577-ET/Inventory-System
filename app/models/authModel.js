@@ -159,6 +159,61 @@ export async function getAllUsers({
   search = null,
   status = "approved",
 } = {}) {
+  if (status === "approved") {
+    let approvedProfilesQuery = supabaseAdmin
+      .from(APPROVED_USERS_TABLE)
+      .select("id, name, email, role, approved_at, approved_by")
+      .eq("is_approved", true)
+      .order("name", { ascending: true });
+
+    let approvedRequestsQuery = supabaseAdmin
+      .from(PENDING_REQUESTS_TABLE)
+      .select("id, name, email, role, approved_at, approved_by")
+      .eq("is_approved", true)
+      .is("rejected_at", null)
+      .order("approved_at", { ascending: false });
+
+    if (role) {
+      approvedProfilesQuery = approvedProfilesQuery.eq("role", role);
+      approvedRequestsQuery = approvedRequestsQuery.eq("role", role);
+    }
+
+    if (search) {
+      const searchFilter = `name.ilike.%${search}%,email.ilike.%${search}%`;
+      approvedProfilesQuery = approvedProfilesQuery.or(searchFilter);
+      approvedRequestsQuery = approvedRequestsQuery.or(searchFilter);
+    }
+
+    const [profilesResult, requestsResult] = await Promise.all([
+      approvedProfilesQuery,
+      approvedRequestsQuery,
+    ]);
+
+    if (profilesResult.error) throw new Error(profilesResult.error.message);
+    if (requestsResult.error) throw new Error(requestsResult.error.message);
+
+    const mergedByEmail = new Map();
+
+    (profilesResult.data || []).forEach((row) => {
+      const key = String(row.email || "").toLowerCase();
+      mergedByEmail.set(key, { ...row, source: "profile" });
+    });
+
+    (requestsResult.data || []).forEach((row) => {
+      const key = String(row.email || "").toLowerCase();
+      if (!mergedByEmail.has(key)) {
+        mergedByEmail.set(key, {
+          ...row,
+          source: "access_request",
+        });
+      }
+    });
+
+    return Array.from(mergedByEmail.values()).sort((a, b) =>
+      String(a.name || a.email || "").localeCompare(String(b.name || b.email || "")),
+    );
+  }
+
   let query;
 
   if (status === "pending") {
@@ -177,13 +232,6 @@ export async function getAllUsers({
       .eq("is_approved", false)
       .not("rejected_at", "is", null)
       .order("rejected_at", { ascending: false });
-  } else {
-    // approved
-    query = supabaseAdmin
-      .from(APPROVED_USERS_TABLE)
-      .select("id, name, email, role, approved_at, approved_by")
-      .eq("is_approved", true)
-      .order("name", { ascending: true });
   }
 
   if (role) query = query.eq("role", role);
@@ -227,43 +275,19 @@ export async function deleteUserProfile(id) {
 export async function approveAccessRequest(requestId, approvedBy) {
   const now = new Date().toISOString();
 
-  // 1. Get the pending request first
-  const { data: request, error: fetchError } = await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from(PENDING_REQUESTS_TABLE)
-    .select("*")
-    .eq("id", requestId)
-    .single();
-
-  if (fetchError) throw new Error(fetchError.message);
-  if (!request) throw new Error("Request not found");
-
-  // 2. Upsert into user_profiles
-  const { error: profileError } = await supabaseAdmin
-    .from(APPROVED_USERS_TABLE)
-    .upsert({
-      id: request.id,
-      name: request.name,
-      email: request.email,
-      role: request.role || "staff",
-      reason: request.reason || "",
+    .update({
       is_approved: true,
-      requested_at: request.requested_at || now,
       approved_at: now,
       approved_by: approvedBy || "admin",
       rejected_at: null,
       rejected_by: null,
       updated_at: now,
-    });
-
-  if (profileError) throw new Error(profileError.message);
-
-  // 3. Remove from pending queue
-  const { error: deleteError } = await supabaseAdmin
-    .from(PENDING_REQUESTS_TABLE)
-    .delete()
+    })
     .eq("id", requestId);
 
-  if (deleteError) throw new Error(deleteError.message);
+  if (error) throw new Error(error.message);
 
   return { success: true };
 }

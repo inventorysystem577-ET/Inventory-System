@@ -8,8 +8,6 @@ export const handleSubmitRegister = async (formData) => {
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      role: "staff",
-      reason: formData.reason,
     });
 
     return response.data; // ✅ Return data for onSuccess callback

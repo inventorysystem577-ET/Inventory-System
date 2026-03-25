@@ -1,5 +1,23 @@
 import axios from "axios";
 
+const getApiErrorMessage = (error, fallbackMessage) => {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData === "string") {
+    const normalized = responseData.trim().toLowerCase();
+    if (normalized.startsWith("<!doctype html") || normalized.startsWith("<html")) {
+      return "API route was not found (received HTML response). Please restart the dev server and try again.";
+    }
+    return responseData;
+  }
+
+  if (responseData && typeof responseData === "object") {
+    return responseData.message || fallbackMessage;
+  }
+
+  return fallbackMessage;
+};
+
 export const handleSubmitAccessRequest = async (formData) => {
   console.log('=== HANDLE ACCESS REQUEST START ===');
   console.log('Form data received:', formData);
@@ -25,7 +43,7 @@ export const handleSubmitAccessRequest = async (formData) => {
     console.error('Error status:', error.response?.status);
     
     if (error.response) {
-      throw new Error(error.response.data?.message || error.response.data);
+      throw new Error(getApiErrorMessage(error, "Request failed"));
     } else if (error.request) {
       throw new Error("No Response From Server. Please Try Again");
     } else {
@@ -43,7 +61,30 @@ export const fetchAccessRequests = async (status = null) => {
   } catch (error) {
     console.error('Fetch error:', error);
     if (error.response) {
-      throw new Error(error.response.data?.message || error.response.data);
+      throw new Error(getApiErrorMessage(error, "Failed to fetch access requests"));
+    } else if (error.request) {
+      throw new Error("No Response From Server. Please Try Again");
+    } else {
+      throw new Error(error.message);
+    }
+  }
+};
+
+export const fetchAccessRequestStatusByEmail = async (email) => {
+  try {
+    const normalizedEmail = (email || "").toString().trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new Error("Email is required");
+    }
+
+    const response = await axios.get(
+      `/api/auth/request-access?email=${encodeURIComponent(normalizedEmail)}`,
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(getApiErrorMessage(error, "Failed to fetch access request status"));
     } else if (error.request) {
       throw new Error("No Response From Server. Please Try Again");
     } else {
@@ -63,7 +104,7 @@ export const handleApproveRequest = async (requestId, action, approvedBy) => {
     return response.data;
   } catch (error) {
     if (error.response) {
-      throw new Error(error.response.data);
+      throw new Error(getApiErrorMessage(error, "Failed to update access request"));
     } else if (error.request) {
       throw new Error("No Response From Server. Please Try Again");
     } else {

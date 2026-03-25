@@ -56,6 +56,7 @@ export default function WelcomeIcon() {
                 fill
                 sizes="(min-width: 1024px) 400px, (min-width: 768px) 320px, 200px"
                 priority
+                unoptimized
                 className="relative object-contain opacity-95 rounded-[50px] mix-blend-lighten"
               />
             </div>

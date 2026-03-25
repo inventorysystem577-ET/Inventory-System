@@ -304,22 +304,30 @@ export default function UserManagementPage() {
                             <div className="flex items-center justify-end gap-2">
                               {statusTab === "approved" && (
                                 <>
-                                  <button
-                                    type="button"
-                                    onClick={() => openEdit(user)}
-                                    className={`p-1.5 rounded-lg transition-colors ${darkMode ? "hover:bg-[#374151] text-blue-400" : "hover:bg-blue-50 text-blue-600"}`}
-                                    title="Edit"
-                                  >
-                                    <Pencil className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openDelete(user)}
-                                    className={`p-1.5 rounded-lg transition-colors ${darkMode ? "hover:bg-[#374151] text-red-400" : "hover:bg-red-50 text-red-600"}`}
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                  {user.source === "access_request" ? (
+                                    <span className={`text-xs font-medium ${subtextClass}`}>
+                                      Awaiting registration
+                                    </span>
+                                  ) : (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => openEdit(user)}
+                                        className={`p-1.5 rounded-lg transition-colors ${darkMode ? "hover:bg-[#374151] text-blue-400" : "hover:bg-blue-50 text-blue-600"}`}
+                                        title="Edit"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => openDelete(user)}
+                                        className={`p-1.5 rounded-lg transition-colors ${darkMode ? "hover:bg-[#374151] text-red-400" : "hover:bg-red-50 text-red-600"}`}
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </>
+                                  )}
                                 </>
                               )}
                               {statusTab === "pending" && (

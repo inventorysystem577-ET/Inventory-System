@@ -5,22 +5,66 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import Image from "next/image";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import WelcomeIcon from "../../components/WelcomeIcon";
 import RegisterHeader from "../../components/RegisterHeader";
 import RegisterForm from "../../components/RegisterForm";
 import { handleFormSubmit } from "../../utils/formHandlers";
 import { handleSubmitRegister } from "../../controller/registerController";
+import { fetchAccessRequestStatusByEmail } from "../../controller/accessRequestController";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [reason, setReason] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const emailFromQuery = (searchParams.get("email") || "")
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    if (!emailFromQuery) {
+      alert("Please request access first.");
+      router.replace("/");
+      return;
+    }
+
+    setEmail(emailFromQuery);
+
+    const verifyAccess = async () => {
+      try {
+        const statusData = await fetchAccessRequestStatusByEmail(emailFromQuery);
+        if (statusData?.status !== "approved_for_registration") {
+          alert(statusData?.message || "Access is not approved yet.");
+          router.replace("/");
+          return;
+        }
+      } catch (error) {
+        alert(error.message || "Unable to verify access request");
+        router.replace("/");
+        return;
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+
+    verifyAccess();
+  }, [router, searchParams]);
 
   const onSubmit = (e) => {
+    if (checkingAccess) {
+      e.preventDefault();
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
@@ -34,19 +78,21 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!reason.trim()) {
-      alert("Please provide your reason for requesting access.");
-      return;
-    }
-
     handleFormSubmit({
       e,
       controllerFn: handleSubmitRegister,
-      data: { name, email, password, role: "staff", reason: reason.trim() },
+      data: { name, email, password },
       setLoading,
       onSuccess: (response) => {
-        alert(response.message || "Registration submitted. Please wait for admin approval.");
-        window.location.href = "/";
+        alert(response.message || "Registration complete. Redirecting to your workspace.");
+        const userRole = (response?.user?.user_metadata?.role || "")
+          .toString()
+          .toLowerCase();
+        if (userRole === "staff") {
+          router.push("/view/product-in");
+          return;
+        }
+        router.push("/view/dashboard");
       },
       onError: (error) => alert(error.message),
     });
@@ -85,14 +131,14 @@ export default function RegisterPage() {
               setName={setName}
               email={email}
               setEmail={setEmail}
-              reason={reason}
-              setReason={setReason}
               password={password}
               setPassword={setPassword}
               confirmPassword={confirmPassword}
               setConfirmPassword={setConfirmPassword}
               onSubmit={onSubmit}
-              loading={loading}
+              loading={loading || checkingAccess}
+              showReasonField={false}
+              emailReadOnly
             />
           </div>
         </div>

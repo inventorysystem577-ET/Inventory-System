@@ -9,13 +9,16 @@ export default function RegisterComponents({
   setName,
   email,
   setEmail,
-  reason,
+  reason = "",
   setReason,
   password,
   setPassword,
   confirmPassword,
   setConfirmPassword,
   onSubmit,
+  loading,
+  showReasonField = true,
+  emailReadOnly = false,
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -81,35 +84,37 @@ export default function RegisterComponents({
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          readOnly={emailReadOnly}
           className="w-full px-4 py-3 border rounded-lg
             border-gray-600 md:border-gray-300
             bg-gray-800 md:bg-white
             text-white md:text-black
             focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
-            transition-all"
+            transition-all read-only:opacity-80 read-only:cursor-not-allowed"
           required
         />
       </div>
 
-      {/* Registration Reason */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
-          Reason for Access
-        </label>
-        <textarea
-          placeholder="Tell the admin why you need access"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          rows={3}
-          className="w-full px-4 py-3 border rounded-lg
-            border-gray-600 md:border-gray-300
-            bg-gray-800 md:bg-white
-            text-white md:text-black
-            focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
-            transition-all resize-none"
-          required
-        />
-      </div>
+      {showReasonField && (
+        <div>
+          <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
+            Reason for Access
+          </label>
+          <textarea
+            placeholder="Tell the admin why you need access"
+            value={reason}
+            onChange={(e) => setReason?.(e.target.value)}
+            rows={3}
+            className="w-full px-4 py-3 border rounded-lg
+              border-gray-600 md:border-gray-300
+              bg-gray-800 md:bg-white
+              text-white md:text-black
+              focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
+              transition-all resize-none"
+            required
+          />
+        </div>
+      )}
 
       {/* Password */}
       <div>
@@ -187,9 +192,10 @@ export default function RegisterComponents({
       {/* Sign Up button */}
       <button
         type="submit"
-        className="w-full py-3 text-white font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 transition-all duration-200"
+        disabled={Boolean(loading)}
+        className="w-full py-3 text-white font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 transition-all duration-200 disabled:opacity-70"
       >
-        Sign Up
+        {loading ? "Please wait..." : "Sign Up"}
       </button>
 
       {/* Already have an account link */}

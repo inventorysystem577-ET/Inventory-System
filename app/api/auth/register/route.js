@@ -2,14 +2,53 @@ import { supabase } from "../../../../lib/supabaseClient";
 
 export async function POST(req) {
   try {
-    const { name, email, password, role, reason } = await req.json();
+    const { name, email, password } = await req.json();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
 
-    // Step 1: Create the auth.users account to get the real UUID
+    if (!name || !normalizedEmail || !password) {
+      throw new Error("Name, email, and password are required");
+    }
+
+    // Check approved request first (registration allowed only after approval)
+    const { data: request, error: requestError } = await supabase
+      .from("access_requests_temp")
+      .select("id, email, role, reason, requested_at, is_approved, approved_at, approved_by, rejected_at")
+      .eq("email", normalizedEmail)
+      .order("requested_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (requestError) throw new Error(requestError.message);
+    if (!request) {
+      throw new Error("No approved access request found for this email.");
+    }
+    if (request.rejected_at) {
+      throw new Error("Your access request was denied by admin.");
+    }
+    if (!request.is_approved) {
+      throw new Error("Your access request is still pending admin approval.");
+    }
+
+    // Prevent duplicate completed accounts
+    const { data: existingProfile } = await supabase
+      .from("user_profiles")
+      .select("id, email, is_approved")
+      .eq("email", normalizedEmail)
+      .eq("is_approved", true)
+      .maybeSingle();
+
+    if (existingProfile) {
+      throw new Error("This email is already registered and approved.");
+    }
+
+    const resolvedRole = request.role || "staff";
+
+    // Create auth account only after approval
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
-        data: { name, role },
+        data: { name, role: resolvedRole, status: "approved" },
       },
     });
 
@@ -18,25 +57,35 @@ export async function POST(req) {
     const authUserId = authData.user?.id;
     if (!authUserId) throw new Error("Auth account creation failed — no user ID returned.");
 
-    // Step 2: Insert into access_requests_temp using the real auth UUID
-    const { error: insertError } = await supabase
-      .from("access_requests_temp")
-      .insert({
+    // Persist approved profile for system access
+    const now = new Date().toISOString();
+    const { error: profileError } = await supabase
+      .from("user_profiles")
+      .upsert({
         id: authUserId,
         name,
-        email,
-        role: role || "staff",
-        reason: reason || "",
-        is_approved: false,
+        email: normalizedEmail,
+        role: resolvedRole,
+        reason: request.reason || "",
+        is_approved: true,
+        requested_at: request.requested_at || now,
+        approved_at: request.approved_at || now,
+        approved_by: request.approved_by || "admin",
+        rejected_at: null,
+        rejected_by: null,
+        updated_at: now,
       });
 
-    if (insertError) {
-      throw new Error(`Account created but registration request failed: ${insertError.message}`);
+    if (profileError) {
+      throw new Error(`Account created but profile save failed: ${profileError.message}`);
     }
+
+    // Remove consumed approved request
+    await supabase.from("access_requests_temp").delete().eq("id", request.id);
 
     return new Response(
       JSON.stringify({
-        message: "Registration submitted. Your account is pending admin approval.",
+        message: "Registration complete. Your account now has access.",
         user: authData.user,
       }),
       { status: 201 },
