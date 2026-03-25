@@ -13,6 +13,7 @@ import RegisterHeader from "../../components/RegisterHeader";
 import RegisterForm from "../../components/RegisterForm";
 import { handleFormSubmit } from "../../utils/formHandlers";
 import { handleSubmitRegister } from "../../controller/registerController";
+import { handleSubmitLogin } from "../../controller/loginController";
 import { fetchAccessRequestStatusByEmail } from "../../controller/accessRequestController";
 
 export default function RegisterPage() {
@@ -83,11 +84,21 @@ export default function RegisterPage() {
       controllerFn: handleSubmitRegister,
       data: { name, email, password },
       setLoading,
-      onSuccess: (response) => {
+      onSuccess: async (response) => {
         alert(response.message || "Registration complete. Redirecting to your workspace.");
-        const userRole = (response?.user?.user_metadata?.role || "")
-          .toString()
-          .toLowerCase();
+
+        // Ensure browser session is established before redirecting into protected routes.
+        let userRole = "";
+        try {
+          const loginData = await handleSubmitLogin({ email, password });
+          userRole = (loginData?.user?.user_metadata?.role || "")
+            .toString()
+            .toLowerCase();
+        } catch (_error) {
+          router.push("/");
+          return;
+        }
+
         if (userRole === "staff") {
           router.push("/view/product-in");
           return;

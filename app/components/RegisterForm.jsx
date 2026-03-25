@@ -198,7 +198,7 @@ export default function RegisterComponents({
         {loading ? "Please wait..." : "Sign Up"}
       </button>
 
-      {/* Already have an account link */}
+      {/* Already have an account link
       <p className="text-center text-sm text-gray-400 md:text-gray-600">
         Already have an account?{" "}
         <Link
@@ -207,7 +207,8 @@ export default function RegisterComponents({
         >
           Sign In
         </Link>
-      </p>
+      </p> */}
+      
     </form>
   );
 }

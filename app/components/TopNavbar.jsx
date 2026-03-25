@@ -10,6 +10,8 @@ import { fetchAccessRequests } from "../controller/accessRequestController";
 // Import Animate.css
 import "animate.css";
 
+const SEEN_ACCESS_REQUEST_IDS_KEY = "seenAccessRequestIds";
+
 export default function TopNavbar({
   sidebarOpen,
   setSidebarOpen,
@@ -40,6 +42,22 @@ export default function TopNavbar({
     setDarkMode(newDarkMode);
     localStorage.setItem("darkMode", newDarkMode.toString());
   };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    try {
+      const rawSeenIds = localStorage.getItem(SEEN_ACCESS_REQUEST_IDS_KEY);
+      if (!rawSeenIds) return;
+
+      const parsed = JSON.parse(rawSeenIds);
+      if (Array.isArray(parsed)) {
+        setSeenRequestIds(parsed.filter((item) => typeof item === "string"));
+      }
+    } catch (_error) {
+      setSeenRequestIds([]);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -74,6 +92,20 @@ export default function TopNavbar({
   const unseenPendingCount = pendingRequests.filter(
     (request) => !seenRequestIds.includes(request.id),
   ).length;
+
+  const markRequestsAsSeen = (requests) => {
+    setSeenRequestIds((currentIds) => {
+      const nextIds = [...currentIds];
+      requests.forEach((request) => {
+        if (request?.id && !nextIds.includes(request.id)) {
+          nextIds.push(request.id);
+        }
+      });
+
+      localStorage.setItem(SEEN_ACCESS_REQUEST_IDS_KEY, JSON.stringify(nextIds));
+      return nextIds;
+    });
+  };
 
   return (
     <nav
@@ -125,15 +157,7 @@ export default function TopNavbar({
                     setShowRequestModal((prev) => {
                       const nextOpenState = !prev;
                       if (nextOpenState) {
-                        setSeenRequestIds((currentIds) => {
-                          const nextIds = [...currentIds];
-                          pendingRequests.forEach((request) => {
-                            if (!nextIds.includes(request.id)) {
-                              nextIds.push(request.id);
-                            }
-                          });
-                          return nextIds;
-                        });
+                        markRequestsAsSeen(pendingRequests);
                       }
                       return nextOpenState;
                     });
@@ -197,6 +221,7 @@ export default function TopNavbar({
                     <button
                       type="button"
                       onClick={() => {
+                        markRequestsAsSeen(pendingRequests);
                         setShowRequestModal(false);
                         router.push("/view/user-management?status=pending");
                       }}
