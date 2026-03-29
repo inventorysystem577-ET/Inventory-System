@@ -9,12 +9,14 @@ import { useSearchParams } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import TopNavbar from "../../components/TopNavbar";
 import AuthGuard from "../../components/AuthGuard";
+import StockHistoryModal from "../../components/StockHistoryModal";
 import {
   Box,
   AlertTriangle,
   TrendingDown,
   XCircle,
   Package,
+  Search,
   PencilLine,
   Check,
   X,
@@ -31,6 +33,7 @@ import "animate.css";
 // Import controllers
 import {
   fetchProductInController,
+  fetchProductOutController,
   clearProductInInventory,
   clearProductOutHistory,
   updateProductInDescriptionController,
@@ -104,6 +107,11 @@ export default function Page() {
   const [editingDescriptionId, setEditingDescriptionId] = useState(null);
   const [editingDescriptionValue, setEditingDescriptionValue] = useState("");
   const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const [parcelOutItems, setParcelOutItems] = useState([]);
+  const [productOutItems, setProductOutItems] = useState([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState(null);
+  const [timeframePreview, setTimeframePreview] = useState(null);
 
   const DESCRIPTION_TRUNCATE_LIMIT = 140;
   const truncateText = (value, maxLength) => {
@@ -227,11 +235,37 @@ export default function Page() {
     return "bg-[#22C55E]";
   };
 
+  const getDisplayedQuantity = (type, item) => {
+    if (
+      !timeframePreview ||
+      timeframePreview.type !== type ||
+      timeframePreview.id !== item?.id
+    ) {
+      return Number(item?.quantity || 0);
+    }
+    return timeframePreview.quantity;
+  };
+
+  const openHistoryModal = (type, item) => {
+    setHistoryTarget({ type, item });
+    setShowHistoryModal(true);
+  };
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false);
+    setHistoryTarget(null);
+    setTimeframePreview(null);
+  };
+
   const loadItems = async () => {
     const parcelData = await fetchParcelItems();
+    const parcelOutData = await fetchParcelOutItems();
     const productData = await fetchProductInController();
+    const productOutData = await fetchProductOutController();
     setParcelItems(parcelData || []);
+    setParcelOutItems(parcelOutData || []);
     setProductItems(productData || []);
+    setProductOutItems(productOutData || []);
   };
 
   useEffect(() => {
@@ -1396,29 +1430,52 @@ export default function Page() {
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {item.quantity} units
+                              {getDisplayedQuantity("parcel", item)} units
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(item.quantity, darkMode)}`}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(getDisplayedQuantity("parcel", item), darkMode)}`}
                               >
-                                {getStatusIcon(item.quantity)}
-                                {getStatusLabel(item.quantity)}
+                                {getStatusIcon(getDisplayedQuantity("parcel", item))}
+                                {getStatusLabel(getDisplayedQuantity("parcel", item))}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">{item.date}</td>
                             <td className="px-4 py-3 text-sm">
-                              {item.quantity === 0 ? (
-                                <Link
-                                  href={`/view/parcel-shipped?item=${encodeURIComponent(item.name)}`}
-                                >
-                                  <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer w-fit">
-                                    Add Stock
-                                  </div>
-                                </Link>
-                              ) : (
-                                "-"
-                              )}
+                              <div className="flex items-center gap-2">
+                                {isAdmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openHistoryModal("parcel", item)}
+                                    className={`inline-flex items-center justify-center p-2 rounded-lg border transition ${
+                                      darkMode
+                                        ? "border-[#374151] hover:bg-[#374151] text-blue-300"
+                                        : "border-[#D1D5DB] hover:bg-[#EFF6FF] text-[#1D4ED8]"
+                                    }`}
+                                    title="View stock history"
+                                    aria-label="View stock history"
+                                  >
+                                    <Search className="w-4 h-4" />
+                                  </button>
+                                ) : null}
+                                {item.quantity === 0 ? (
+                                  <Link
+                                    href={`/view/parcel-shipped?item=${encodeURIComponent(item.name)}`}
+                                  >
+                                    <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer w-fit">
+                                      Add Stock
+                                    </div>
+                                  </Link>
+                                ) : null}
+                                {!isAdmin && item.quantity !== 0 ? "-" : null}
+                                {isAdmin && item.quantity !== 0 ? (
+                                  <span
+                                    className={darkMode ? "text-gray-500" : "text-gray-400"}
+                                  >
+                                    -
+                                  </span>
+                                ) : null}
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -1846,29 +1903,52 @@ export default function Page() {
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {item.quantity} units
+                              {getDisplayedQuantity("product", item)} units
                             </td>
                             <td className="px-4 py-3 text-sm">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(item.quantity, darkMode)}`}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(getDisplayedQuantity("product", item), darkMode)}`}
                               >
-                                {getStatusIcon(item.quantity)}
-                                {getStatusLabel(item.quantity)}
+                                {getStatusIcon(getDisplayedQuantity("product", item))}
+                                {getStatusLabel(getDisplayedQuantity("product", item))}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm">{item.date}</td>
                             <td className="px-4 py-3 text-sm">
-                              {item.quantity === 0 ? (
-                                <Link
-                                  href={`/view/product-in?product=${encodeURIComponent(item.product_name)}`}
-                                >
-                                  <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
-                                    Add Stock
-                                  </div>
-                                </Link>
-                              ) : (
-                                "-"
-                              )}
+                              <div className="flex items-center gap-2">
+                                {isAdmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openHistoryModal("product", item)}
+                                    className={`inline-flex items-center justify-center p-2 rounded-lg border transition ${
+                                      darkMode
+                                        ? "border-[#374151] hover:bg-[#374151] text-violet-300"
+                                        : "border-[#D1D5DB] hover:bg-[#F5F3FF] text-[#6D28D9]"
+                                    }`}
+                                    title="View stock history"
+                                    aria-label="View stock history"
+                                  >
+                                    <Search className="w-4 h-4" />
+                                  </button>
+                                ) : null}
+                                {item.quantity === 0 ? (
+                                  <Link
+                                    href={`/view/product-in?product=${encodeURIComponent(item.product_name)}`}
+                                  >
+                                    <div className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+                                      Add Stock
+                                    </div>
+                                  </Link>
+                                ) : null}
+                                {!isAdmin && item.quantity !== 0 ? "-" : null}
+                                {isAdmin && item.quantity !== 0 ? (
+                                  <span
+                                    className={darkMode ? "text-gray-500" : "text-gray-400"}
+                                  >
+                                    -
+                                  </span>
+                                ) : null}
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -1881,7 +1961,18 @@ export default function Page() {
           </div>
         </div>
 
-        {/* ============= EXPORT MODAL ============= */}
+        <StockHistoryModal
+          open={showHistoryModal && Boolean(historyTarget)}
+          darkMode={darkMode}
+          historyTarget={historyTarget}
+          parcelItems={parcelItems}
+          parcelOutItems={parcelOutItems}
+          productItems={productItems}
+          productOutItems={productOutItems}
+          onClose={closeHistoryModal}
+          onPreviewChange={setTimeframePreview}
+        />
+
         {showExportModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div
