@@ -7,8 +7,7 @@ export const handleSubmitRegister = async (formData) => {
     const response = await axios.post("/api/auth/register", {
       name: formData.name,
       email: formData.email,
-      role: formData.role,
-      reason: formData.reason,
+      password: formData.password,
     });
 
     return response.data; // ✅ Return data for onSuccess callback

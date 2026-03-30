@@ -10,9 +10,11 @@ import "animate.css";
 import {
   fetchParcelOutItems,
   handleAddParcelOut,
+  updateParcelOutItemHelper,
 } from "../../utils/parcelOutHelper";
 import { fetchParcelItems } from "../../utils/parcelShippedHelper";
-import { CATEGORIES, CATEGORY_OPTIONS, getCategoryColor, getCategoryIcon } from "../../utils/categoryUtils";
+import { CATEGORIES, COMPONENT_CATEGORY_OPTIONS, getCategoryColor, getCategoryIcon } from "../../utils/categoryUtils";
+import { buildProductCode } from "../../utils/inventoryMeta";
 
 export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -24,7 +26,32 @@ export default function Page() {
   const [timeHour, setTimeHour] = useState("1");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAMPM, setTimeAMPM] = useState("AM");
+  const [shippingMode, setShippingMode] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState(CATEGORIES.OTHERS);
   const [selectedFilter, setSelectedFilter] = useState("");
+  const computedTotalPrice = (Number(price) || 0) * (Number(quantity) || 0);
+  const [isUpdatingCategoryId, setIsUpdatingCategoryId] = useState(null);
+
+  const handleTransferCategory = async (itemId, nextCategory) => {
+    setIsUpdatingCategoryId(itemId);
+    const updated = await updateParcelOutItemHelper(itemId, {
+      category: nextCategory || CATEGORIES.OTHERS,
+    });
+
+    if (updated) {
+      setItems((prev) =>
+        prev.map((row) =>
+          row.id === itemId ? { ...row, category: updated.category } : row,
+        ),
+      );
+    } else {
+      alert("Failed to transfer category.");
+    }
+
+    setIsUpdatingCategoryId(null);
+  };
 
   // Multi-product state
   const [parcelRows, setParcelRows] = useState([
@@ -473,7 +500,7 @@ export default function Page() {
                             "border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm border-[#D1D5DB] focus:ring-[#1E3A8A] focus:border-[#1E3A8A] bg-white text-black"
                           )}
                         >
-                          {CATEGORY_OPTIONS.map((cat) => (
+                          {COMPONENT_CATEGORY_OPTIONS.map((cat) => (
                             <option key={cat.value} value={cat.value}>
                               {cat.label}
                             </option>
@@ -660,7 +687,8 @@ export default function Page() {
                   >
                     <tr>
                       {[
-                        "Item Name",
+                        "Code",
+                        "Product",
                         "Category",
                         "Date",
                         "Quantity",
@@ -690,7 +718,7 @@ export default function Page() {
                     {filteredItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={8}
+                          colSpan={9}
                           className={`px-4 sm:px-6 py-12 sm:py-16 text-center ${
                             darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
                           }`}
@@ -720,6 +748,13 @@ export default function Page() {
                           style={{ animationDelay: `${index * 0.1}s` }}
                         >
                           <td
+                            className={`px-4 sm:px-6 py-3 sm:py-4 text-center align-middle text-xs sm:text-sm whitespace-nowrap ${
+                              darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                            }`}
+                          >
+                            {buildProductCode(item, "CMP")}
+                          </td>
+                          <td
                             className={`px-4 sm:px-6 py-3 sm:py-4 text-center align-middle font-semibold text-sm sm:text-base break-words whitespace-normal ${
                               darkMode ? "text-white" : "text-[#111827]"
                             }`}
@@ -727,12 +762,35 @@ export default function Page() {
                             {item.name}
                           </td>
                           <td className="px-4 sm:px-6 py-3 sm:py-4 text-center align-middle">
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getCategoryColor(item.category)}`}
-                            >
-                              <span className="mr-1">{getCategoryIcon(item.category)}</span>
-                              {item.category || 'Others'}
-                            </span>
+                            <div className="flex flex-col items-center gap-2">
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getCategoryColor(item.category)}`}
+                              >
+                                <span className="mr-1">
+                                  {getCategoryIcon(item.category)}
+                                </span>
+                                {item.category || "Others"}
+                              </span>
+                              <select
+                                value={item.category || CATEGORIES.OTHERS}
+                                onChange={(e) =>
+                                  handleTransferCategory(item.id, e.target.value)
+                                }
+                                disabled={isUpdatingCategoryId === item.id}
+                                className={`text-xs rounded-lg px-2 py-1 border focus:outline-none focus:ring-2 ${
+                                  darkMode
+                                    ? "bg-[#111827] border-[#374151] text-white focus:ring-[#3B82F6]"
+                                    : "bg-white border-[#D1D5DB] text-black focus:ring-[#1E3A8A]"
+                                }`}
+                                aria-label="Transfer category"
+                              >
+                                {CATEGORY_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.value}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </td>
                           <td
                             className={`px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center align-middle text-sm sm:text-base ${

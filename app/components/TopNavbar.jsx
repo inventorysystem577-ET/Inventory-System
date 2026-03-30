@@ -1,13 +1,16 @@
 "use client";
 
-import { X, Menu, Sun, Moon } from "lucide-react";
+import { X, Menu, Sun, Moon, Mail } from "lucide-react";
 import { useAuth } from "../hook/useAuth";
 import { getDisplayName, getAvatarLetter } from "../utils/userHelper";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { fetchAccessRequests } from "../controller/accessRequestController";
 
 // Import Animate.css
 import "animate.css";
+
+const SEEN_ACCESS_REQUEST_IDS_KEY = "seenAccessRequestIds";
 
 export default function TopNavbar({
   sidebarOpen,
@@ -17,6 +20,10 @@ export default function TopNavbar({
 }) {
   const { userEmail, displayName, role, loading } = useAuth();
   const router = useRouter();
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [seenRequestIds, setSeenRequestIds] = useState([]);
+  const isAdmin = String(role || "").toLowerCase() === "admin";
 
   const displayedName = getDisplayName(null, userEmail);
   const avatarLetter = getAvatarLetter(null, userEmail);
@@ -34,6 +41,70 @@ export default function TopNavbar({
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem("darkMode", newDarkMode.toString());
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    try {
+      const rawSeenIds = localStorage.getItem(SEEN_ACCESS_REQUEST_IDS_KEY);
+      if (!rawSeenIds) return;
+
+      const parsed = JSON.parse(rawSeenIds);
+      if (Array.isArray(parsed)) {
+        setSeenRequestIds(parsed.filter((item) => typeof item === "string"));
+      }
+    } catch (_error) {
+      setSeenRequestIds([]);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setPendingRequests([]);
+      setSeenRequestIds([]);
+      return;
+    }
+
+    let mounted = true;
+    const loadPendingRequests = async () => {
+      try {
+        const requests = await fetchAccessRequests("pending");
+        if (mounted) {
+          setPendingRequests(Array.isArray(requests) ? requests : []);
+        }
+      } catch (_error) {
+        if (mounted) {
+          setPendingRequests([]);
+        }
+      }
+    };
+
+    loadPendingRequests();
+    const intervalId = setInterval(loadPendingRequests, 30000);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [isAdmin]);
+
+  const unseenPendingCount = pendingRequests.filter(
+    (request) => !seenRequestIds.includes(request.id),
+  ).length;
+
+  const markRequestsAsSeen = (requests) => {
+    setSeenRequestIds((currentIds) => {
+      const nextIds = [...currentIds];
+      requests.forEach((request) => {
+        if (request?.id && !nextIds.includes(request.id)) {
+          nextIds.push(request.id);
+        }
+      });
+
+      localStorage.setItem(SEEN_ACCESS_REQUEST_IDS_KEY, JSON.stringify(nextIds));
+      return nextIds;
+    });
   };
 
   return (
@@ -79,6 +150,90 @@ export default function TopNavbar({
             }`}
           >
             {/* Dark Mode Toggle */}
+            {isAdmin && (
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowRequestModal((prev) => {
+                      const nextOpenState = !prev;
+                      if (nextOpenState) {
+                        markRequestsAsSeen(pendingRequests);
+                      }
+                      return nextOpenState;
+                    });
+                  }}
+                  className={`p-2 rounded-md transition relative ${
+                    darkMode ? "hover:bg-[#1F2937]" : "hover:bg-[#F3F4F6]"
+                  }`}
+                  title="Access Requests"
+                  aria-label="Access Requests"
+                >
+                  <Mail
+                    className={`w-5 h-5 ${darkMode ? "text-[#D1D5DB]" : "text-[#6B7280]"}`}
+                  />
+                  {unseenPendingCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {unseenPendingCount}
+                    </span>
+                  )}
+                </button>
+
+                {showRequestModal && (
+                  <div
+                    className={`absolute right-0 mt-2 w-80 rounded-lg border shadow-xl z-50 ${
+                      darkMode
+                        ? "bg-[#111827] border-[#374151] text-white"
+                        : "bg-white border-[#E5E7EB] text-[#111827]"
+                    }`}
+                  >
+                    <div className="px-4 py-3 border-b border-inherit">
+                      <h3 className="text-sm font-semibold">Pending Access Requests</h3>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {pendingRequests.length === 0 ? (
+                        <p
+                          className={`px-4 py-4 text-sm ${
+                            darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                          }`}
+                        >
+                          No pending access requests.
+                        </p>
+                      ) : (
+                        pendingRequests.slice(0, 8).map((request) => (
+                          <div
+                            key={request.id}
+                            className={`px-4 py-3 border-b last:border-b-0 ${
+                              darkMode ? "border-[#1F2937]" : "border-[#F3F4F6]"
+                            }`}
+                          >
+                            <p className="text-sm font-medium">{request.email}</p>
+                            <p
+                              className={`text-xs mt-0.5 ${
+                                darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                              }`}
+                            >
+                              {request.reason || "No reason provided"}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        markRequestsAsSeen(pendingRequests);
+                        setShowRequestModal(false);
+                        router.push("/view/user-management?status=pending");
+                      }}
+                      className="w-full py-2.5 text-sm font-medium text-blue-500 hover:bg-blue-500/10"
+                    >
+                      Go to User Management
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               onClick={toggleDarkMode}
               className={`p-2 rounded-md transition ${

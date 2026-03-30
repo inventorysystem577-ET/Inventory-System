@@ -2,18 +2,39 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 
 export default function RegisterComponents({
   name,
   setName,
   email,
   setEmail,
-  role,
-  setRole,
-  reason,
+  reason = "",
   setReason,
+  password,
+  setPassword,
+  confirmPassword,
+  setConfirmPassword,
   onSubmit,
+  loading,
+  showReasonField = true,
+  emailReadOnly = false,
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const getPasswordStrength = (value) => {
+    if (!value) return 0;
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score += 1;
+    if (/\d/.test(value)) score += 1;
+    return score;
+  };
+
+  const strength = getPasswordStrength(password);
+  const strengthLabel = strength <= 1 ? "Weak" : strength === 2 ? "Medium" : "Strong";
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {/* Name */}
@@ -41,20 +62,16 @@ export default function RegisterComponents({
         <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
           Role
         </label>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
+        <input
+          type="text"
+          value="Staff (requires admin approval)"
+          disabled
           className="w-full px-4 py-3 border rounded-lg
             border-gray-600 md:border-gray-300
-            bg-gray-800 md:bg-white
-            text-white md:text-black
-            focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
-            transition-all"
-          required
-        >
-          <option value="">Select a role</option>
-          <option value="staff">Staff</option>
-        </select>
+            bg-gray-700 md:bg-gray-100
+            text-gray-300 md:text-gray-700
+            cursor-not-allowed"
+        />
       </div>
 
       {/* Email */}
@@ -67,45 +84,121 @@ export default function RegisterComponents({
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          readOnly={emailReadOnly}
           className="w-full px-4 py-3 border rounded-lg
             border-gray-600 md:border-gray-300
             bg-gray-800 md:bg-white
             text-white md:text-black
             focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
-            transition-all"
+            transition-all read-only:opacity-80 read-only:cursor-not-allowed"
           required
         />
       </div>
 
-      {/* Reason for Access */}
+      {showReasonField && (
+        <div>
+          <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
+            Reason for Access
+          </label>
+          <textarea
+            placeholder="Tell the admin why you need access"
+            value={reason}
+            onChange={(e) => setReason?.(e.target.value)}
+            rows={3}
+            className="w-full px-4 py-3 border rounded-lg
+              border-gray-600 md:border-gray-300
+              bg-gray-800 md:bg-white
+              text-white md:text-black
+              focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
+              transition-all resize-none"
+            required
+          />
+        </div>
+      )}
+
+      {/* Password */}
       <div>
         <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
-          Reason for Access
+          Password
         </label>
-        <textarea
-          placeholder="Please describe why you need access to the inventory system"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="w-full px-4 py-3 border rounded-lg
-            border-gray-600 md:border-gray-300
-            bg-gray-800 md:bg-white
-            text-white md:text-black
-            focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
-            transition-all resize-none"
-          rows="4"
-          required
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3 pr-12 border rounded-lg
+              border-gray-600 md:border-gray-300
+              bg-gray-800 md:bg-white
+              text-white md:text-black
+              focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
+              transition-all"
+            required
+            minLength={8}
+            title="Password must contain at least 8 characters, including uppercase, lowercase, and numbers"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 md:text-gray-600 hover:text-blue-400 md:hover:text-blue-600"
+          >
+            {showPassword ? <FaRegEyeSlash /> : <FaRegEye />}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 md:text-gray-500 mt-1">
+          At least 8 characters with uppercase, lowercase, and numbers
+        </p>
+        <div className="mt-2 space-y-1">
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className={`h-1.5 rounded ${strength >= 1 ? "bg-red-500" : "bg-gray-300"}`} />
+            <div className={`h-1.5 rounded ${strength >= 2 ? "bg-yellow-500" : "bg-gray-300"}`} />
+            <div className={`h-1.5 rounded ${strength >= 3 ? "bg-green-500" : "bg-gray-300"}`} />
+          </div>
+          <p className="text-xs text-gray-400 md:text-gray-500">Strength: {password ? strengthLabel : "—"}</p>
+        </div>
       </div>
 
-      {/* Request Access button */}
+      {/* Confirm Password */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 md:text-gray-700 mb-2">
+          Confirm Password
+        </label>
+        <div className="relative">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Confirm your password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full px-4 py-3 pr-12 border rounded-lg
+              border-gray-600 md:border-gray-300
+              bg-gray-800 md:bg-white
+              text-white md:text-black
+              focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-100
+              transition-all"
+            required
+            minLength={8}
+            title="Password must contain at least 8 characters, including uppercase, lowercase, and numbers"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 md:text-gray-600 hover:text-blue-400 md:hover:text-blue-600"
+          >
+            {showConfirmPassword ? <FaRegEyeSlash /> : <FaRegEye />}
+          </button>
+        </div>
+      </div>
+
+      {/* Sign Up button */}
       <button
         type="submit"
-        className="w-full py-3 text-white font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 transition-all duration-200"
+        disabled={Boolean(loading)}
+        className="w-full py-3 text-white font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 transition-all duration-200 disabled:opacity-70"
       >
-        Request Access
+        {loading ? "Please wait..." : "Sign Up"}
       </button>
 
-      {/* Already have an account link */}
+      {/* Already have an account link
       <p className="text-center text-sm text-gray-400 md:text-gray-600">
         Already have an account?{" "}
         <Link
@@ -114,7 +207,8 @@ export default function RegisterComponents({
         >
           Sign In
         </Link>
-      </p>
+      </p> */}
+      
     </form>
   );
 }

@@ -9,30 +9,33 @@ import WelcomeIcon from "../../components/WelcomeIcon";
 import RegisterHeader from "../../components/RegisterHeader";
 import { handleFormSubmit } from "../../utils/formHandlers";
 import { handleSubmitAccessRequest } from "../../controller/accessRequestController";
+import { useRouter } from "next/navigation";
 
 export default function RequestAccessPage() {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const onSubmit = (e) => {
-    console.log('=== REQUEST ACCESS FORM SUBMISSION ===');
-    console.log('Form data:', { name, email, role, reason });
-    
     handleFormSubmit({
       e,
       controllerFn: handleSubmitAccessRequest,
-      data: { name, email, role, reason },
+      data: { email, reason },
       setLoading,
       onSuccess: (response) => {
-        console.log('Form submission success:', response);
-        alert(response.message || "Access request submitted successfully! Your request will be reviewed by an admin.");
-        window.location.href = "/";
+        if (response?.status === "approved_for_registration" && response?.registerUrl) {
+          alert(response.message || "Access approved. Continue registration.");
+          router.push(response.registerUrl);
+          return;
+        }
+
+        alert(
+          response?.message ||
+            "Admin has been notified. Please wait for approval and try again later.",
+        );
       },
       onError: (error) => {
-        console.error('Form submission error:', error);
         alert(error.message);
       },
     });
@@ -61,31 +64,15 @@ export default function RequestAccessPage() {
 
           {/* Header */}
           <div className="animate__animated animate__fadeInDown animate__slow mb-2">
-            <RegisterHeader />
-            <h2 className="text-center text-xl font-semibold text-gray-700 dark:text-gray-200 mt-4">
-              Request Access
-            </h2>
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Your account will require administrator approval before access is granted.
-            </p>
+            <RegisterHeader
+              title="Request Access"
+              subtitle="Your account requires administrator approval before access is granted."
+            />
           </div>
 
           {/* Form */}
           <div className="animate__animated animate__fadeInUp animate__slow mb-4">
             <form onSubmit={onSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Email
@@ -101,22 +88,7 @@ export default function RequestAccessPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Role
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                >
-                  <option value="">Select Role</option>
-                  <option value="staff">Staff</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Reason for Access Request
+                  Reason for Access Request (optional)
                 </label>
                 <textarea
                   value={reason}
@@ -124,7 +96,6 @@ export default function RequestAccessPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   rows="3"
                   placeholder="Please explain why you need access to this inventory system..."
-                  required
                 />
               </div>
 

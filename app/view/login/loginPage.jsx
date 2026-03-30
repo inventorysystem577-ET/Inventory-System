@@ -7,16 +7,53 @@ import WelcomeIcon from "../../components/WelcomeIcon";
 import LoginHeader from "../../components/LoginHeader";
 import LoginForm from "../../components/LoginForm";
 import { handleSubmitLogin } from "../../controller/loginController";
+import { handleSubmitAccessRequest } from "../../controller/accessRequestController";
 import { handleFormSubmit } from "../../utils/formHandlers";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState("");
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const onSubmit = (e) => {
+    if (mode === "request") {
+      handleFormSubmit({
+        e,
+        controllerFn: handleSubmitAccessRequest,
+        data: { email, reason },
+        setLoading,
+        onSuccess: (response) => {
+          const status = response?.status;
+
+          if (status === "approved_for_registration" && response?.registerUrl) {
+            alert(response.message || "Access approved. Continue registration.");
+            router.push(response.registerUrl);
+            return;
+          }
+
+          if (status === "already_registered") {
+            alert(response.message || "This email already has access. Please sign in.");
+            setMode("login");
+            return;
+          }
+
+          alert(
+            response?.message ||
+              "Admin has been notified. Please wait for approval and try again later.",
+          );
+        },
+        onError: (error) => {
+          console.error("Access request error:", error.message);
+          alert(error.message);
+        },
+      });
+      return;
+    }
+
     handleFormSubmit({
       e,
       controllerFn: handleSubmitLogin,
@@ -29,7 +66,7 @@ export default function LoginPage() {
           .toString()
           .toLowerCase();
         if (role === "staff") {
-          router.push("/view/product-in");
+          router.push("/view/dashboard");
           return;
         }
         router.push("/view/dashboard");
@@ -70,8 +107,12 @@ export default function LoginPage() {
           {/* FORM */}
           <div className="animate__animated animate__fadeInUp animate__slow mb-4">
             <LoginForm
+              mode={mode}
+              onModeChange={setMode}
               email={email}
               setEmail={setEmail}
+              reason={reason}
+              setReason={setReason}
               password={password}
               setPassword={setPassword}
               onSubmit={onSubmit}
