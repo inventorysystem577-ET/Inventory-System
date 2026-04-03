@@ -512,16 +512,22 @@ export default function Page() {
   };
 
   // Category management handlers
-  const handleAddComponentCategory = (newCategory) => {
-    // For now, just show an alert - in a real app this would update backend
-    alert(`Component category "${newCategory}" added successfully!`);
+  const handleAddComponentCategory = async (newCategory) => {
+    // Simulate API call with delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // For now, just show a success message - in a real app this would update backend
     // Here you would typically update the categories in your database
+    console.log(`Component category "${newCategory}" added successfully!`);
   };
 
-  const handleAddProductCategory = (newCategory) => {
-    // For now, just show an alert - in a real app this would update backend
-    alert(`Product category "${newCategory}" added successfully!`);
+  const handleAddProductCategory = async (newCategory) => {
+    // Simulate API call with delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // For now, just show a success message - in a real app this would update backend
     // Here you would typically update the categories in your database
+    console.log(`Product category "${newCategory}" added successfully!`);
   };
 
   const countByStatus = (items = [], type) => {
@@ -1376,8 +1382,8 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
                   >
@@ -1386,7 +1392,11 @@ export default function Page() {
                   <select
                     value={filterParcelStatus}
                     onChange={(e) => setFilterParcelStatus(e.target.value)}
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black"}`}
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm appearance-none bg-no-repeat bg-right pr-8 ${
+                      darkMode 
+                        ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzlDQTNBMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]" 
+                        : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzYwQTI4MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]"
+                    }`}
                   >
                     <option value="all">
                       All Status ({parcelItems.length})
@@ -1405,7 +1415,7 @@ export default function Page() {
                     </option>
                   </select>
                 </div>
-                <div>
+                <div className="relative">
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
                   >
@@ -1414,7 +1424,11 @@ export default function Page() {
                   <select
                     value={parcelCategoryFilter}
                     onChange={(e) => setParcelCategoryFilter(e.target.value)}
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black"}`}
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm appearance-none bg-no-repeat bg-right pr-8 ${
+                      darkMode 
+                        ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzlDQTNBMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]" 
+                        : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzYwQTI4MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]"
+                    }`}
                   >
                     <option value="all">All Categories</option>
                     {COMPONENT_CATEGORY_OPTIONS.map((cat) => (
@@ -1424,19 +1438,32 @@ export default function Page() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="relative">
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
                   >
                     Search:
                   </label>
-                  <input
-                    type="text"
-                    value={parcelSearch}
-                    onChange={(e) => setParcelSearch(e.target.value)}
-                    placeholder="Search by name, code, or SKU"
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#60A5FA] focus:border-[#60A5FA] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black"}`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={parcelSearch}
+                      onChange={(e) => setParcelSearch(e.target.value)}
+                      placeholder="Search by name, code, or SKU"
+                      className={`border rounded-lg px-3 py-2 w-full pl-10 focus:outline-none focus:ring-2 transition-all text-sm ${
+                        darkMode 
+                          ? "border-[#374151] focus:ring-[#60A5FA] focus:border-[#60A5FA] bg-[#111827] text-white placeholder-gray-400" 
+                          : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black placeholder-gray-500"
+                      }`}
+                    />
+                    <div className={`absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none ${
+                      darkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1807,8 +1834,8 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
                   >
@@ -1817,7 +1844,11 @@ export default function Page() {
                   <select
                     value={filterProductStatus}
                     onChange={(e) => setFilterProductStatus(e.target.value)}
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black"}`}
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm appearance-none bg-no-repeat bg-right pr-8 ${
+                      darkMode 
+                        ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzlDQTNBMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]" 
+                        : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzYwQTI4MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]"
+                    }`}
                   >
                     <option value="all">
                       All Status ({productItems.length})
@@ -1836,7 +1867,7 @@ export default function Page() {
                     </option>
                   </select>
                 </div>
-                <div>
+                <div className="relative">
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
                   >
@@ -1845,7 +1876,11 @@ export default function Page() {
                   <select
                     value={productCategoryFilter}
                     onChange={(e) => setProductCategoryFilter(e.target.value)}
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black"}`}
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm appearance-none bg-no-repeat bg-right pr-8 ${
+                      darkMode 
+                        ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzlDQTNBMSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]" 
+                        : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOCIgdmlld0JveD0iMCAwIDEyIDgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDFMNiA2TDExIDEiIHN0cm9rZT0iIzYwQTI4MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+')]"
+                    }`}
                   >
                     <option value="all">All Categories</option>
                     {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -1855,19 +1890,32 @@ export default function Page() {
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="relative">
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
                   >
                     Search:
                   </label>
-                  <input
-                    type="text"
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    placeholder="Search by name, code, or SKU"
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black"}`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Search by name, code, or SKU"
+                      className={`border rounded-lg px-3 py-2 w-full pl-10 focus:outline-none focus:ring-2 transition-all text-sm ${
+                        darkMode 
+                          ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white placeholder-gray-400" 
+                          : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black placeholder-gray-500"
+                      }`}
+                    />
+                    <div className={`absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none ${
+                      darkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
 

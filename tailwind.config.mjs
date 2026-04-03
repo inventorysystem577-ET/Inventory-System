@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-const config = {
+export default {
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,14 +9,7 @@ const config = {
     extend: {},
   },
   plugins: [
-    require('daisyui'),
+    // DaisyUI not yet compatible with Tailwind v4
+    // You can add custom utilities here if needed
   ],
-  daisyui: {
-    themes: [
-      "light",
-      "dark",
-    ],
-  },
 }
-
-export default config

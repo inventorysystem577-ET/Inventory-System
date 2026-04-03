@@ -53,7 +53,7 @@ export default function Page() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage] = useState(10);
 
   // Helper functions for multi-product management
   const addParcelRow = () => {
@@ -65,7 +65,7 @@ export default function Page() {
         name: "",
         quantity: 1,
         price: "",
-        category: CATEGORIES.ELECTRONICS,
+        category: CATEGORIES.COMPONENT,
         shippingMode: "",
         clientName: "",
       }
@@ -73,9 +73,6 @@ export default function Page() {
   };
 
   const uniqueItemCount = getUniqueItemCount(items);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
 
   const handleTransferCategory = async (itemId, nextCategory) => {
     setIsUpdatingCategoryId(itemId);
