@@ -131,6 +131,8 @@ export default function ProductInPage() {
   const [editingDescriptionId, setEditingDescriptionId] = useState(null);
   const [editingDescriptionValue, setEditingDescriptionValue] = useState("");
   const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const [showProductHistory, setShowProductHistory] = useState(false);
+  const [productHistorySort, setProductHistorySort] = useState("default");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -543,10 +545,32 @@ export default function ProductInPage() {
     }
   };
 
+  const getHistoryTimestamp = (row) => {
+    const createdAt = Date.parse(row?.created_at || "");
+    if (!Number.isNaN(createdAt)) return createdAt;
+
+    const dateTime = Date.parse(`${row?.date || ""} ${row?.time_in || ""}`);
+    if (!Number.isNaN(dateTime)) return dateTime;
+
+    return 0;
+  };
+
+  const sortedHistoryItems = [...items].sort((a, b) => {
+    if (productHistorySort === "newest") {
+      return getHistoryTimestamp(b) - getHistoryTimestamp(a);
+    }
+
+    if (productHistorySort === "oldest") {
+      return getHistoryTimestamp(a) - getHistoryTimestamp(b);
+    }
+
+    return 0;
+  });
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = items.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const currentItems = sortedHistoryItems.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedHistoryItems.length / itemsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   const goToNextPage = () => {
@@ -1091,9 +1115,9 @@ export default function ProductInPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 xl:grid-cols-8 gap-6 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 xl:grid-cols-8 gap-2.5 mb-4">
                 {/* Product */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 xl:col-span-3">
                   <label
                     className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
                       darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
@@ -1222,7 +1246,7 @@ export default function ProductInPage() {
                       darkMode
                         ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
                         : "border-[#D1D5DB] focus:ring-[#1E3A8A] bg-white text-black"
-                    } min-w-[150px]`}
+                    } min-w-[120px]`}
                     required
                   />
                 </div>
@@ -1397,7 +1421,31 @@ export default function ProductInPage() {
             </div>
             )}
 
+            {/* ── Product History Toggle (Admin only) ───────────────────── */}
+            {isAdmin && (
+              <div
+                className={`rounded-xl shadow-xl overflow-hidden border mb-4 ${
+                  darkMode
+                    ? "bg-[#1F2937] border-[#374151]"
+                    : "bg-white border-[#E5E7EB]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowProductHistory((prev) => !prev)}
+                  className={`w-full text-left px-4 py-3 text-sm font-semibold uppercase tracking-wide ${
+                    darkMode
+                      ? "bg-[#111827] text-[#D1D5DB] hover:bg-[#1F2937]"
+                      : "bg-[#F9FAFB] text-[#374151] hover:bg-[#F3F4F6]"
+                  }`}
+                >
+                  {showProductHistory ? "hide" : "show"}
+                </button>
+              </div>
+            )}
+
             {/* ── Product Table ──────────────────────────────────────────── */}
+            {isAdmin && showProductHistory && (
             <div
               className={`rounded-xl shadow-xl overflow-hidden border transition animate__animated animate__fadeInUp animate__fast ${
                 darkMode
@@ -1674,20 +1722,38 @@ export default function ProductInPage() {
               </div>
 
               {/* Pagination */}
-              {items.length > itemsPerPage && (
+              {sortedHistoryItems.length > itemsPerPage && (
                 <div
                   className={`flex items-center justify-between px-4 py-3 border-t ${
                     darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
                   }`}
                 >
-                  <div
-                    className={`text-sm ${
-                      darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
-                    }`}
-                  >
-                    Showing {indexOfFirstItem + 1} to{" "}
-                    {Math.min(indexOfLastItem, items.length)} of {items.length}{" "}
-                    entries
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`text-sm ${
+                        darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                      }`}
+                    >
+                      Showing {indexOfFirstItem + 1} to{" "}
+                      {Math.min(indexOfLastItem, sortedHistoryItems.length)} of{" "}
+                      {sortedHistoryItems.length} entries
+                    </div>
+                    <select
+                      value={productHistorySort}
+                      onChange={(e) => {
+                        setProductHistorySort(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className={`text-xs border rounded-lg px-2 py-1.5 ${
+                        darkMode
+                          ? "bg-[#111827] border-[#374151] text-white"
+                          : "bg-white border-[#D1D5DB] text-[#111827]"
+                      }`}
+                    >
+                      <option value="default">Default</option>
+                      <option value="newest">Newest to Oldest</option>
+                      <option value="oldest">Oldest to Newest</option>
+                    </select>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1755,6 +1821,7 @@ export default function ProductInPage() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </main>
       </div>

@@ -91,7 +91,7 @@ export default function LoginComponents({
         </div>
       )}
 
-      {!isRequestMode && (
+      {/* {!isRequestMode && (
         <div className="flex justify-end">
           <Link
             href="/view/forgot-password"
@@ -100,7 +100,7 @@ export default function LoginComponents({
             Forgot password?
           </Link>
         </div>
-      )}
+      )} */}
 
       <button
         type="submit"
