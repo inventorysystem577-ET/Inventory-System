@@ -28,6 +28,8 @@ import {
   FileJson,
   FileDown,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Upload,
 } from "lucide-react";
 import Link from "next/link";
@@ -131,6 +133,10 @@ export default function Page() {
   const [productSearch, setProductSearch] = useState("");
   const [parcelCategoryFilter, setParcelCategoryFilter] = useState("all");
   const [productCategoryFilter, setProductCategoryFilter] = useState("all");
+  const [parcelSortOrder, setParcelSortOrder] = useState("default");
+  const [productSortOrder, setProductSortOrder] = useState("default");
+  const [parcelCurrentPage, setParcelCurrentPage] = useState(1);
+  const [productCurrentPage, setProductCurrentPage] = useState(1);
   const { role, displayName, userEmail } = useAuth();
   const isAdmin = isAdminRole(role);
   const canViewHistory = isAdmin || isStaffRole(role);
@@ -469,6 +475,119 @@ export default function Page() {
         sku.includes(keyword))
     );
   });
+
+  const getHistoryTimestamp = (row) => {
+    const createdAt = Date.parse(row?.created_at || "");
+    if (!Number.isNaN(createdAt)) return createdAt;
+
+    const dateTime = Date.parse(
+      `${row?.date || ""} ${row?.time_in || row?.time || ""}`,
+    );
+    if (!Number.isNaN(dateTime)) return dateTime;
+
+    return 0;
+  };
+
+  const sortByHistoryDate = (items = [], sortOrder = "default") => {
+    if (sortOrder === "default") return [...items];
+    return [...items].sort((a, b) => {
+      if (sortOrder === "newest") {
+        return getHistoryTimestamp(b) - getHistoryTimestamp(a);
+      }
+      if (sortOrder === "oldest") {
+        return getHistoryTimestamp(a) - getHistoryTimestamp(b);
+      }
+      return 0;
+    });
+  };
+
+  const sortedParcelItems = sortByHistoryDate(filteredParcelItems, parcelSortOrder);
+  const sortedProductItems = sortByHistoryDate(
+    filteredProductItems,
+    productSortOrder,
+  );
+
+  const PARCEL_ITEMS_PER_PAGE = 10;
+  const PRODUCT_ITEMS_PER_PAGE = 5;
+
+  const parcelTotalPages =
+    Math.ceil(sortedParcelItems.length / PARCEL_ITEMS_PER_PAGE) || 1;
+  const productTotalPages =
+    Math.ceil(sortedProductItems.length / PRODUCT_ITEMS_PER_PAGE) || 1;
+
+  const parcelIndexOfFirstItem = (parcelCurrentPage - 1) * PARCEL_ITEMS_PER_PAGE;
+  const parcelIndexOfLastItem = parcelIndexOfFirstItem + PARCEL_ITEMS_PER_PAGE;
+  const paginatedParcelItems = sortedParcelItems.slice(
+    parcelIndexOfFirstItem,
+    parcelIndexOfLastItem,
+  );
+
+  const productIndexOfFirstItem =
+    (productCurrentPage - 1) * PRODUCT_ITEMS_PER_PAGE;
+  const productIndexOfLastItem =
+    productIndexOfFirstItem + PRODUCT_ITEMS_PER_PAGE;
+  const paginatedProductItems = sortedProductItems.slice(
+    productIndexOfFirstItem,
+    productIndexOfLastItem,
+  );
+
+  const getPageNumbers = (currentPage, totalPages) => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i += 1) pageNumbers.push(i);
+      return pageNumbers;
+    }
+
+    if (currentPage <= 3) {
+      for (let i = 1; i <= 4; i += 1) pageNumbers.push(i);
+      pageNumbers.push("...");
+      pageNumbers.push(totalPages);
+      return pageNumbers;
+    }
+
+    if (currentPage >= totalPages - 2) {
+      pageNumbers.push(1);
+      pageNumbers.push("...");
+      for (let i = totalPages - 3; i <= totalPages; i += 1) {
+        pageNumbers.push(i);
+      }
+      return pageNumbers;
+    }
+
+    pageNumbers.push(1);
+    pageNumbers.push("...");
+    pageNumbers.push(currentPage - 1);
+    pageNumbers.push(currentPage);
+    pageNumbers.push(currentPage + 1);
+    pageNumbers.push("...");
+    pageNumbers.push(totalPages);
+    return pageNumbers;
+  };
+
+  useEffect(() => {
+    setParcelCurrentPage(1);
+  }, [filterParcelStatus, parcelCategoryFilter, parcelSearch, parcelSortOrder]);
+
+  useEffect(() => {
+    setProductCurrentPage(1);
+  }, [
+    filterProductStatus,
+    productCategoryFilter,
+    productSearch,
+    productSortOrder,
+  ]);
+
+  useEffect(() => {
+    if (parcelCurrentPage > parcelTotalPages) setParcelCurrentPage(parcelTotalPages);
+  }, [parcelCurrentPage, parcelTotalPages]);
+
+  useEffect(() => {
+    if (productCurrentPage > productTotalPages) {
+      setProductCurrentPage(productTotalPages);
+    }
+  }, [productCurrentPage, productTotalPages]);
 
   const transferCategory = async ({ type, id, nextCategory }) => {
   setCategoryTransferError("");
@@ -1360,7 +1479,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
@@ -1422,6 +1541,22 @@ export default function Page() {
                     className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#60A5FA] focus:border-[#60A5FA] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black"}`}
                   />
                 </div>
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Sort by Date:
+                  </label>
+                  <select
+                    value={parcelSortOrder}
+                    onChange={(e) => setParcelSortOrder(e.target.value)}
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#60A5FA] focus:border-[#60A5FA] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#1e40af] focus:border-[#1e40af] bg-white text-black"}`}
+                  >
+                    <option value="default">Default</option>
+                    <option value="newest">Newest to Oldest</option>
+                    <option value="oldest">Oldest to Newest</option>
+                  </select>
+                </div>
               </div>
 
               <div
@@ -1461,7 +1596,7 @@ export default function Page() {
                     <tbody
                       className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}`}
                     >
-                      {filteredParcelItems.length === 0 ? (
+                      {sortedParcelItems.length === 0 ? (
                         <tr>
                           <td colSpan="9" className="px-4 py-12 text-center">
                             <div className="flex flex-col items-center justify-center gap-3">
@@ -1482,7 +1617,7 @@ export default function Page() {
                           </td>
                         </tr>
                       ) : (
-                        filteredParcelItems.map((item, index) => (
+                        paginatedParcelItems.map((item, index) => (
                           <tr
                             key={index}
                             className={`transition-colors ${darkMode ? "hover:bg-[#374151]" : "hover:bg-[#F9FAFB]"}`}
@@ -1684,6 +1819,97 @@ export default function Page() {
                     </tbody>
                   </table>
                 </div>
+
+                {sortedParcelItems.length > 0 && (
+                  <div
+                    className={`flex items-center justify-between px-4 py-3 border-t ${
+                      darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+                    }`}
+                  >
+                    <div
+                      className={`text-sm ${
+                        darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                      }`}
+                    >
+                      Showing {parcelIndexOfFirstItem + 1} to{" "}
+                      {Math.min(parcelIndexOfLastItem, sortedParcelItems.length)} of{" "}
+                      {sortedParcelItems.length} entries
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setParcelCurrentPage((prev) => Math.max(prev - 1, 1))
+                        }
+                        disabled={parcelCurrentPage === 1}
+                        className={`p-2 rounded-lg transition-all ${
+                          parcelCurrentPage === 1
+                            ? darkMode
+                              ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                              : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
+                            : darkMode
+                              ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                              : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                        }`}
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {getPageNumbers(parcelCurrentPage, parcelTotalPages).map(
+                          (pageNum, idx) =>
+                            pageNum === "..." ? (
+                              <span
+                                key={`parcel-ellipsis-${idx}`}
+                                className={`px-3 py-2 ${
+                                  darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                                }`}
+                              >
+                                ...
+                              </span>
+                            ) : (
+                              <button
+                                key={`parcel-page-${pageNum}`}
+                                type="button"
+                                onClick={() => setParcelCurrentPage(pageNum)}
+                                className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                                  parcelCurrentPage === pageNum
+                                    ? "bg-[#1E40AF] text-white shadow-md"
+                                    : darkMode
+                                      ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                                      : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            ),
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setParcelCurrentPage((prev) =>
+                            Math.min(prev + 1, parcelTotalPages),
+                          )
+                        }
+                        disabled={parcelCurrentPage === parcelTotalPages}
+                        className={`p-2 rounded-lg transition-all ${
+                          parcelCurrentPage === parcelTotalPages
+                            ? darkMode
+                              ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                              : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
+                            : darkMode
+                              ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                              : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                        }`}
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1785,7 +2011,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
@@ -1847,6 +2073,22 @@ export default function Page() {
                     className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black"}`}
                   />
                 </div>
+                <div>
+                  <label
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Sort by Date:
+                  </label>
+                  <select
+                    value={productSortOrder}
+                    onChange={(e) => setProductSortOrder(e.target.value)}
+                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all text-sm ${darkMode ? "border-[#374151] focus:ring-[#a78bfa] focus:border-[#a78bfa] bg-[#111827] text-white" : "border-[#D1D5DB] focus:ring-[#7c3aed] focus:border-[#7c3aed] bg-white text-black"}`}
+                  >
+                    <option value="default">Default</option>
+                    <option value="newest">Newest to Oldest</option>
+                    <option value="oldest">Oldest to Newest</option>
+                  </select>
+                </div>
               </div>
 
               <div
@@ -1886,7 +2128,7 @@ export default function Page() {
                     <tbody
                       className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}`}
                     >
-                      {filteredProductItems.length === 0 ? (
+                      {sortedProductItems.length === 0 ? (
                         <tr>
                           <td colSpan="9" className="px-4 py-12 text-center">
                             <div className="flex flex-col items-center justify-center gap-3">
@@ -1907,7 +2149,7 @@ export default function Page() {
                           </td>
                         </tr>
                       ) : (
-                        filteredProductItems.map((item, index) => (
+                        paginatedProductItems.map((item, index) => (
                           <tr
                             key={index}
                             className={`transition-colors ${darkMode ? "hover:bg-[#374151]" : "hover:bg-[#F9FAFB]"}`}
@@ -2179,6 +2421,97 @@ export default function Page() {
                     </tbody>
                   </table>
                 </div>
+
+                {sortedProductItems.length > 0 && (
+                  <div
+                    className={`flex items-center justify-between px-4 py-3 border-t ${
+                      darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+                    }`}
+                  >
+                    <div
+                      className={`text-sm ${
+                        darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                      }`}
+                    >
+                      Showing {productIndexOfFirstItem + 1} to{" "}
+                      {Math.min(productIndexOfLastItem, sortedProductItems.length)} of{" "}
+                      {sortedProductItems.length} entries
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setProductCurrentPage((prev) => Math.max(prev - 1, 1))
+                        }
+                        disabled={productCurrentPage === 1}
+                        className={`p-2 rounded-lg transition-all ${
+                          productCurrentPage === 1
+                            ? darkMode
+                              ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                              : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
+                            : darkMode
+                              ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                              : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                        }`}
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {getPageNumbers(productCurrentPage, productTotalPages).map(
+                          (pageNum, idx) =>
+                            pageNum === "..." ? (
+                              <span
+                                key={`product-ellipsis-${idx}`}
+                                className={`px-3 py-2 ${
+                                  darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"
+                                }`}
+                              >
+                                ...
+                              </span>
+                            ) : (
+                              <button
+                                key={`product-page-${pageNum}`}
+                                type="button"
+                                onClick={() => setProductCurrentPage(pageNum)}
+                                className={`px-3 py-2 rounded-lg font-medium transition-all ${
+                                  productCurrentPage === pageNum
+                                    ? "bg-[#6D28D9] text-white shadow-md"
+                                    : darkMode
+                                      ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                                      : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            ),
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setProductCurrentPage((prev) =>
+                            Math.min(prev + 1, productTotalPages),
+                          )
+                        }
+                        disabled={productCurrentPage === productTotalPages}
+                        className={`p-2 rounded-lg transition-all ${
+                          productCurrentPage === productTotalPages
+                            ? darkMode
+                              ? "bg-[#374151] text-[#6B7280] cursor-not-allowed"
+                              : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"
+                            : darkMode
+                              ? "bg-[#374151] text-[#D1D5DB] hover:bg-[#4B5563]"
+                              : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"
+                        }`}
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
