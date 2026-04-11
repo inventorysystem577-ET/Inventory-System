@@ -17,6 +17,7 @@ import {
   Save,
   AlertTriangle,
   Search,
+  Trash2,
 } from "lucide-react";
 import "animate.css";
 import AuthGuard from "../../components/AuthGuard";
@@ -30,9 +31,6 @@ export default function StockTransferPage() {
   const [darkMode, setDarkMode] = useState(false);
 
   // Form state
-  const [itemName, setItemName] = useState("");
-  const [totalQty, setTotalQty] = useState(1);
-  const [description, setDescription] = useState("");
   const [dateOfRelease, setDateOfRelease] = useState("");
   const [dateOfReturned, setDateOfReturned] = useState("");
   const [receiver, setReceiver] = useState("");
@@ -40,21 +38,70 @@ export default function StockTransferPage() {
   const [remarks, setRemarks] = useState("");
   const [action, setAction] = useState("transferred"); // transferred or returned
 
+  // Multi-product state
+  const [products, setProducts] = useState([
+    {
+      id: Date.now(),
+      itemName: "",
+      totalQty: 1,
+      description: "",
+      searchOpen: false,
+      selectedInventoryItem: null,
+    }
+  ]);
+  const [searchTerms, setSearchTerms] = useState({});
+
   // Inventory state
   const [availableItems, setAvailableItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
-  const [searchOpen, setSearchOpen] = useState(false);
 
-  // Table data
-  const [transfers, setTransfers] = useState([]);
+  // Table data - load from localStorage for persistence
+  const [transfers, setTransfers] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('stockTransferTransfers');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  
+  // Add product row
+  const addProductRow = () => {
+    const newProduct = {
+      id: Date.now(),
+      itemName: "",
+      totalQty: 1,
+      description: "",
+      searchOpen: false,
+      selectedInventoryItem: null,
+    };
+    setProducts([...products, newProduct]);
+  };
+
+  // Remove product row
+  const removeProductRow = (id) => {
+    if (products.length > 1) {
+      setProducts(products.filter(product => product.id !== id));
+    }
+  };
+
+  // Update product field
+  const updateProduct = (id, field, value) => {
+    setProducts(prev => prev.map(product =>
+      product.id === id ? { ...product, [field]: value } : product
+    ));
+  };
   const [editingId, setEditingId] = useState(null);
   const [editingRemarks, setEditingRemarks] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-  // Inventory management
-  const [inventoryQuantities, setInventoryQuantities] = useState({});
+  // Inventory management - load from localStorage for persistence
+  const [inventoryQuantities, setInventoryQuantities] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('stockTransferInventoryQuantities');
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,18 +117,46 @@ export default function StockTransferPage() {
     
     loadTransfers();
     loadInventoryItems();
+  }, []);
+
+  // Save inventory quantities to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(inventoryQuantities).length > 0) {
+      localStorage.setItem('stockTransferInventoryQuantities', JSON.stringify(inventoryQuantities));
+    }
   }, [inventoryQuantities]);
+
+  // Update all products' filteredItems when availableItems changes
+  useEffect(() => {
+    if (availableItems.length > 0) {
+      setProducts(prev => prev.map(product => ({
+        ...product,
+        filteredItems: availableItems
+      })));
+    }
+  }, [availableItems]);
+
+  // Save transfers to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('stockTransferTransfers', JSON.stringify(transfers));
+    }
+  }, [transfers]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchOpen && !event.target.closest('.inventory-search-container')) {
-        setSearchOpen(false);
+      if (!event.target.closest('.inventory-search-container')) {
+        // Close all product dropdowns
+        setProducts(prev => prev.map(product => ({
+          ...product,
+          searchOpen: false
+        })));
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [searchOpen]);
+  }, []);
 
   const loadInventoryItems = async () => {
     try {
@@ -116,13 +191,17 @@ export default function StockTransferPage() {
       setAvailableItems(allItems);
       setFilteredItems(allItems);
       
-      // Initialize inventory quantities
+      // Initialize inventory quantities - merge with saved localStorage values
+      const savedQuantities = JSON.parse(localStorage.getItem('stockTransferInventoryQuantities') || '{}');
       const initialQuantities = {};
       allItems.forEach(item => {
         const sanitizedName = item.name.replace(/[^a-zA-Z0-9_]/g, '_');
-        initialQuantities[`${item.type}_${sanitizedName}`] = item.availableQuantity;
+        const itemKey = `${item.type}_${sanitizedName}`;
+        // Use saved quantity if it exists (and is >= 0), otherwise use API quantity
+        const savedQty = savedQuantities[itemKey];
+        initialQuantities[itemKey] = (savedQty !== undefined && savedQty >= 0) ? savedQty : item.availableQuantity;
       });
-      console.log('Initial inventory quantities:', initialQuantities);
+      console.log('Merged inventory quantities:', initialQuantities);
       setInventoryQuantities(initialQuantities);
     } catch (error) {
       console.error("Failed to load inventory items:", error);
@@ -130,37 +209,59 @@ export default function StockTransferPage() {
     }
   };
 
-  useEffect(() => {
+  // Handle product search for multi-product feature
+  const handleProductSearch = (productId, searchTerm) => {
+    setSearchTerms(prev => ({ ...prev, [productId]: searchTerm }));
+    
     // Filter items based on search term
     const filtered = availableItems.filter(item =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-    setFilteredItems(filtered);
-  }, [searchTerm, availableItems]);
-
-  const handleItemSelect = (item) => {
-    setSelectedInventoryItem(item);
-    setItemName(item.name);
-    setDescription(item.description || "");
-    setSearchOpen(false);
-    setSearchTerm("");
-    const sanitizedName = item.name.replace(/[^a-zA-Z0-9_]/g, '_');
-    const currentQty = inventoryQuantities[`${item.type}_${sanitizedName}`] || item.availableQuantity;
-    setTotalQty(Math.min(currentQty, item.availableQuantity)); // Don't exceed available quantity
+    
+    setProducts(prev => prev.map(product =>
+      product.id === productId
+        ? { ...product, filteredItems: filtered }
+        : product
+    ));
   };
 
-  const handleQuantityChange = (value) => {
+  // Handle item selection for multi-product
+  const handleItemSelect = (productId, item) => {
+    setProducts(prev => prev.map(product =>
+      product.id === productId
+        ? {
+            ...product,
+            itemName: item.name,
+            description: item.description || "",
+            totalQty: Math.min(product.totalQty, inventoryQuantities[`${item.type}_${item.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? item.availableQuantity),
+            selectedInventoryItem: item,
+            searchOpen: false
+          }
+        : product
+    ));
+    
+    setSearchTerms(prev => ({ ...prev, [productId]: "" }));
+  };
+
+  // Handle quantity change for multi-product
+  const handleQuantityChange = (productId, value) => {
     const qty = Math.max(1, parseInt(value) || 1);
-    if (selectedInventoryItem) {
-      const sanitizedName = selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_');
-      const currentQty = inventoryQuantities[`${selectedInventoryItem.type}_${sanitizedName}`] || selectedInventoryItem.availableQuantity;
-      if (qty > currentQty) {
-        showErrorAlert(`Only ${currentQty} items available`);
-        return;
+    
+    setProducts(prev => prev.map(product => {
+      if (product.id === productId) {
+        if (product.selectedInventoryItem) {
+          const sanitizedName = product.selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_');
+          const currentQty = inventoryQuantities[`${product.selectedInventoryItem.type}_${sanitizedName}`] ?? product.selectedInventoryItem.availableQuantity;
+          if (qty > currentQty) {
+            showErrorAlert(`Only ${currentQty} items available`);
+            return product;
+          }
+        }
+        return { ...product, totalQty: qty };
       }
-    }
-    setTotalQty(qty);
+      return product;
+    }));
   };
 
   const loadTransfers = async () => {
@@ -171,8 +272,16 @@ export default function StockTransferPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!itemName || !totalQty || !dateOfRelease || !receiver || !purpose) {
-      showErrorAlert("Please fill in all required fields");
+    // Validate all products have required fields
+    const validProducts = products.filter(product => product.itemName.trim() && product.totalQty > 0);
+    
+    if (validProducts.length === 0) {
+      showErrorAlert("Please add at least one product with name and quantity");
+      return;
+    }
+    
+    if (!dateOfRelease || !receiver || !purpose) {
+      showErrorAlert("Please fill in all required fields (Date, Receiver, Purpose)");
       return;
     }
 
@@ -184,39 +293,40 @@ export default function StockTransferPage() {
     setIsLoading(true);
 
     try {
+      // Check inventory availability for all products
+      const inventoryErrors = [];
+      validProducts.forEach(product => {
+        const itemType = product.selectedInventoryItem?.type || 'product';
+        const sanitizedName = product.itemName.replace(/[^a-zA-Z0-9_]/g, '_');
+        const itemKey = `${itemType}_${sanitizedName}`;
+        const currentQuantity = inventoryQuantities[itemKey] ?? product.selectedInventoryItem?.availableQuantity ?? 0;
+        
+        if (action === "transferred" && currentQuantity < product.totalQty) {
+          inventoryErrors.push(`${product.itemName}: Only ${currentQuantity} available`);
+        }
+      });
+      
+      if (inventoryErrors.length > 0) {
+        showErrorAlert(inventoryErrors.join('\n'));
+        setIsLoading(false);
+        return;
+      }
+
       const newTransfer = {
         id: Date.now(),
-        itemName,
-        totalQty: parseInt(totalQty),
-        description,
         dateOfRelease,
         dateOfReturned: action === "returned" ? dateOfReturned : "",
         receiver,
         purpose,
         remarks,
         action,
-        itemType: selectedInventoryItem?.type || 'product'
+        products: validProducts.map(product => ({
+          itemName: product.itemName,
+          totalQty: product.totalQty,
+          description: product.description,
+          type: product.selectedInventoryItem?.type || 'product'
+        }))
       };
-
-      // Check inventory availability
-      const sanitizedName = (selectedInventoryItem?.name || itemName).replace(/[^a-zA-Z0-9_]/g, '_');
-      const itemKey = `${selectedInventoryItem?.type || 'product'}_${sanitizedName}`;
-      const currentQuantity = inventoryQuantities[itemKey] || selectedInventoryItem?.availableQuantity || 0;
-      
-      console.log('Inventory check:', {
-        itemKey,
-        currentQuantity,
-        inventoryQuantities,
-        selectedInventoryItem,
-        itemName,
-        totalQty
-      });
-      
-      if (action === "transferred" && currentQuantity < parseInt(totalQty)) {
-        showErrorAlert(`Insufficient inventory. Only ${currentQuantity} ${selectedInventoryItem?.name || itemName} available.`);
-        setIsLoading(false);
-        return;
-      }
 
       // Mock API call - replace with actual API
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -225,20 +335,29 @@ export default function StockTransferPage() {
       
       // Update inventory quantities
       if (action === "transferred") {
-        const sanitizedName = (selectedInventoryItem?.name || itemName).replace(/[^a-zA-Z0-9_]/g, '_');
-        const itemKey = `${selectedInventoryItem?.type || 'product'}_${sanitizedName}`;
-        const newQuantity = currentQuantity - parseInt(totalQty);
-        setInventoryQuantities(prev => ({
-          ...prev,
-          [itemKey]: newQuantity
-        }));
-        showSuccessAlert(`Deducted ${totalQty} ${selectedInventoryItem?.name || itemName} from inventory`);
+        validProducts.forEach(product => {
+          const itemType = product.selectedInventoryItem?.type || 'product';
+          const sanitizedName = product.itemName.replace(/[^a-zA-Z0-9_]/g, '_');
+          const itemKey = `${itemType}_${sanitizedName}`;
+          const currentQuantity = inventoryQuantities[itemKey] ?? product.selectedInventoryItem?.availableQuantity ?? 0;
+          const newQuantity = currentQuantity - product.totalQty;
+          setInventoryQuantities(prev => ({
+            ...prev,
+            [itemKey]: newQuantity
+          }));
+        });
+        showSuccessAlert('Inventory updated successfully');
       }
       
       // Reset form
-      setItemName("");
-      setTotalQty(1);
-      setDescription("");
+      setProducts([{
+        id: Date.now(),
+        itemName: "",
+        totalQty: 1,
+        description: "",
+        searchOpen: false,
+        selectedInventoryItem: null,
+      }]);
       setDateOfRelease(new Date().toISOString().split('T')[0]);
       setDateOfReturned("");
       setReceiver("");
@@ -295,32 +414,31 @@ export default function StockTransferPage() {
         dateOfReturned: newAction === "transferred" ? "" : (transfer.dateOfReturned || new Date().toISOString().split('T')[0])
       };
       
-      // Update inventory quantities
-      const itemKey = `${transfer.itemType}_${transfer.itemName.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-      const currentQuantity = inventoryQuantities[itemKey] || 0;
-      
-      if (transfer.action === "transferred" && newAction === "returned") {
-        // Returning: Add quantity back to inventory
-        const newQuantity = currentQuantity + transfer.totalQty;
-        setInventoryQuantities(prev => ({
-          ...prev,
-          [itemKey]: newQuantity
-        }));
-        showSuccessAlert(`Added ${transfer.totalQty} ${transfer.itemName} back to inventory`);
-      } else if (transfer.action === "returned" && newAction === "transferred") {
-        // Transferring again: Deduct quantity from inventory
-        const newQuantity = currentQuantity - transfer.totalQty;
-        if (newQuantity >= 0) {
+      // Update inventory quantities for each product in the transfer
+      transfer.products?.forEach(product => {
+        const itemType = product.type || 'product';
+        const sanitizedName = product.itemName.replace(/[^a-zA-Z0-9_]/g, '_');
+        const itemKey = `${itemType}_${sanitizedName}`;
+        const currentQuantity = inventoryQuantities[itemKey] || 0;
+        
+        if (transfer.action === "transferred" && newAction === "returned") {
+          // Returning: Add quantity back to inventory
+          const newQuantity = currentQuantity + product.totalQty;
           setInventoryQuantities(prev => ({
             ...prev,
             [itemKey]: newQuantity
           }));
-          showSuccessAlert(`Deducted ${transfer.totalQty} ${transfer.itemName} from inventory`);
-        } else {
-          showErrorAlert('Insufficient inventory quantity for this transfer');
-          return;
+        } else if (transfer.action === "returned" && newAction === "transferred") {
+          // Transferring again: Deduct quantity from inventory
+          const newQuantity = currentQuantity - product.totalQty;
+          if (newQuantity >= 0) {
+            setInventoryQuantities(prev => ({
+              ...prev,
+              [itemKey]: newQuantity
+            }));
+          }
         }
-      }
+      });
       
       // Update the transfer in the array
       setTransfers(prevTransfers => 
@@ -503,31 +621,124 @@ export default function StockTransferPage() {
                 </div>
               </div>
 
-              {/* Item Details */}
+              {/* Item Details - Multi Product */}
               <div className="mb-6">
-                <h3 className={`text-lg font-semibold mb-4 ${darkMode ? "text-white" : "text-black"}`}>
-                  Item Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Name of item */}
-                  <div className="md:col-span-2">
-                    <label className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
-                      darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                    }`}>
-                      <Package className="w-4 h-4" /> Name of item *
-                    </label>
-                    <div className="relative inventory-search-container">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-semibold ${darkMode ? "text-white" : "text-black"}`}>
+                    Item Details
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={addProductRow}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                      darkMode
+                        ? "bg-[#374151] hover:bg-[#4B5563] text-white"
+                        : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                    }`}
+                  >
+                    <Plus className="w-4 h-4" /> Add Product
+                  </button>
+                </div>
+                
+                {products.map((product, index) => (
+                  <div key={product.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4 p-4 rounded-lg border relative ${darkMode ? 'border-[#374151] bg-[#111827]/50' : 'border-gray-200 bg-gray-50'}">
+                    {/* Remove button */}
+                    {products.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeProductRow(product.id)}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    {/* Name of item */}
+                    <div className="md:col-span-6">
+                      <label className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
+                        darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                      }`}>
+                        <Package className="w-4 h-4" /> Name *
+                      </label>
+                      <div className="relative inventory-search-container">
+                        <input
+                          type="text"
+                          value={product.itemName}
+                          onChange={(e) => {
+                            updateProduct(product.id, 'itemName', e.target.value);
+                            handleProductSearch(product.id, e.target.value);
+                            updateProduct(product.id, 'searchOpen', true);
+                            updateProduct(product.id, 'selectedInventoryItem', null);
+                          }}
+                          onFocus={() => updateProduct(product.id, 'searchOpen', true)}
+                          placeholder="Search item"
+                          className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
+                            darkMode
+                              ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                              : "border-[#D1D5DB] focus:ring-[#3B82F6] bg-white text-black"
+                          }`}
+                          required
+                        />
+                        {product.searchOpen && (
+                          <div className={`absolute top-full left-0 right-0 mt-1 border rounded-lg shadow-lg max-h-60 overflow-y-auto z-20 ${
+                            darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"
+                          }`}>
+                            {(() => {
+                              const availableFilteredItems = (product.filteredItems || availableItems).filter(item => {
+                                const sanitizedName = item.name.replace(/[^a-zA-Z0-9_]/g, '_');
+                                const currentQty = inventoryQuantities[`${item.type}_${sanitizedName}`];
+                                return currentQty === undefined || currentQty > 0;
+                              });
+                              return availableFilteredItems.length === 0 ? (
+                                <div className={`px-3 py-2 text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
+                                  No items found
+                                </div>
+                              ) : (
+                                availableFilteredItems.map((item, itemIndex) => (
+                                  <div
+                                    key={itemIndex}
+                                    onClick={() => handleItemSelect(product.id, item)}
+                                    className={`px-3 py-2 cursor-pointer hover:bg-opacity-10 hover:bg-blue-500 border-b last:border-b-0 ${
+                                      darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className={`font-medium text-sm ${darkMode ? "text-white" : "text-black"}`}>
+                                          {item.name}
+                                        </div>
+                                        <div className={`text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
+                                          {item.type} • {(inventoryQuantities[`${item.type}_${item.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? item.availableQuantity)} available
+                                        </div>
+                                      </div>
+                                      <Package className="w-4 h-4 text-blue-500" />
+                                    </div>
+                                  </div>
+                                ))
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                      {product.selectedInventoryItem && (
+                        <div className={`mt-1 text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
+                          Available: {(inventoryQuantities[`${product.selectedInventoryItem.type}_${product.selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? product.selectedInventoryItem.availableQuantity)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* QTY */}
+                    <div className="md:col-span-2">
+                      <label className={`text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}>
+                        QTY *
+                      </label>
                       <input
-                        type="text"
-                        value={itemName}
-                        onChange={(e) => {
-                          setItemName(e.target.value);
-                          setSearchTerm(e.target.value);
-                          setSearchOpen(true);
-                          setSelectedInventoryItem(null);
-                        }}
-                        onFocus={() => setSearchOpen(true)}
-                        placeholder="Search and select item from inventory"
+                        type="number"
+                        value={product.totalQty}
+                        onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                        placeholder="Qty"
+                        min="1"
+                        max={product.selectedInventoryItem ? (inventoryQuantities[`${product.selectedInventoryItem.type}_${product.selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? product.selectedInventoryItem.availableQuantity) : ""}
                         className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
                           darkMode
                             ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
@@ -535,79 +746,27 @@ export default function StockTransferPage() {
                         }`}
                         required
                       />
-                    {searchOpen && (
-                      <div className={`absolute top-full left-0 right-0 mt-1 border rounded-lg shadow-lg max-h-60 overflow-y-auto z-10 ${
-                        darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"
-                      }`}>
-                        {filteredItems.length === 0 ? (
-                          <div className={`px-3 py-2 text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                            No items found
-                          </div>
-                        ) : (
-                          filteredItems.map((item, index) => (
-                            <div
-                              key={index}
-                              onClick={() => handleItemSelect(item)}
-                              className={`px-3 py-2 cursor-pointer hover:bg-opacity-10 hover:bg-blue-500 border-b last:border-b-0 ${
-                                darkMode ? "border-[#374151]" : "border-[#E5E7EB]"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className={`font-medium text-sm ${darkMode ? "text-white" : "text-black"}`}>
-                                    {item.name}
-                                  </div>
-                                  <div className={`text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                                    {item.type} • {inventoryQuantities[`${item.type}_${item.name}`]} available
-                                  </div>
-                                  {item.description && (
-                                    <div className={`text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                                      {item.description}
-                                    </div>
-                                  )}
-                                </div>
-                                <Package className="w-4 h-4 text-blue-500" />
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {selectedInventoryItem && (
-                    <div className={`mt-2 text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                      Selected: {inventoryQuantities[`${selectedInventoryItem.type}_${selectedInventoryItem.name}`] || selectedInventoryItem.availableQuantity} items available
                     </div>
-                  )}
-                </div>
 
-                {/* Total QTY */}
-                <div>
-                  <label className={`text-sm font-medium mb-2 flex items-center gap-1.5 ${
-                    darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                  }`}>
-                    <Plus className="w-4 h-4" /> Total QTY *
-                  </label>
-                  <input
-                    type="number"
-                    value={totalQty}
-                    onChange={(e) => handleQuantityChange(e.target.value)}
-                    placeholder="Enter quantity"
-                    min="1"
-                    max={inventoryQuantities[`${selectedInventoryItem?.type || 'product'}_${selectedInventoryItem?.name || itemName}`] || selectedInventoryItem?.availableQuantity || ""}
-                    className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
-                      darkMode
-                        ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
-                        : "border-[#D1D5DB] focus:ring-[#3B82F6] bg-white text-black"
-                    }`}
-                    required
-                  />
-                  {selectedInventoryItem && (
-                    <div className={`mt-1 text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                      Max: {selectedInventoryItem.availableQuantity}
+                    {/* Description */}
+                    <div className="md:col-span-4">
+                      <label className={`text-sm font-medium mb-2 ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}>
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        value={product.description}
+                        onChange={(e) => updateProduct(product.id, 'description', e.target.value)}
+                        placeholder="Optional"
+                        className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
+                          darkMode
+                            ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
+                            : "border-[#D1D5DB] focus:ring-[#3B82F6] bg-white text-black"
+                        }`}
+                      />
                     </div>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
 
               {/* Remarks */}
@@ -636,7 +795,6 @@ export default function StockTransferPage() {
                   </div>
                 </div>
               </div>
-            </div>
 
             {/* Submit button */}
             <div className="mt-6 flex justify-end">
@@ -695,17 +853,28 @@ export default function StockTransferPage() {
                 <tbody className={`divide-y ${darkMode ? "divide-[#374151]" : "divide-[#E5E7EB]"}`}>
                   {currentItems.map((transfer) => (
                     <tr key={transfer.id} className={darkMode ? "hover:bg-[#111827]" : "hover:bg-gray-50"}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Package className="w-4 h-4 mr-2 text-blue-500" />
-                          <span className={`text-sm font-medium ${darkMode ? "text-white" : "text-black"}`}>
-                            {transfer.itemName}
-                          </span>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          {transfer.products?.map((product, idx) => (
+                            <div key={idx} className="flex items-center">
+                              <Package className="w-4 h-4 mr-2 text-blue-500" />
+                              <span className={`text-sm font-medium ${darkMode ? "text-white" : "text-black"}`}>
+                                {product.itemName} (x{product.totalQty})
+                              </span>
+                            </div>
+                          )) || (
+                            <div className="flex items-center">
+                              <Package className="w-4 h-4 mr-2 text-blue-500" />
+                              <span className={`text-sm font-medium ${darkMode ? "text-white" : "text-black"}`}>
+                                {transfer.itemName}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`text-sm ${darkMode ? "text-[#D1D5DB]" : "text-[#374151]"}`}>
-                          {transfer.totalQty}
+                          {transfer.products ? transfer.products.reduce((sum, p) => sum + p.totalQty, 0) : transfer.totalQty}
                         </span>
                       </td>
                         <td className="px-6 py-4 whitespace-nowrap">

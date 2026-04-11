@@ -97,7 +97,7 @@ export default function Page() {
     if (itemParam) {
       setName(itemParam);
     }
-  };
+  }, [itemParam]);
 
   const updateParcelRow = (id, field, value) => {
     setParcelRows(parcelRows.map(row => {

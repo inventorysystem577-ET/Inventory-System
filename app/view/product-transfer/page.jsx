@@ -54,14 +54,26 @@ export default function ProductTransferPage() {
     }
   ]);
 
-  // Table data
-  const [transfers, setTransfers] = useState([]);
+  // Table data - load from localStorage for persistence
+  const [transfers, setTransfers] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('productTransferTransfers');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   const [editingId, setEditingId] = useState(null);
   const [editingRemarks, setEditingRemarks] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-  // Inventory management
-  const [inventoryQuantities, setInventoryQuantities] = useState({});
+  // Inventory management - load from localStorage for persistence
+  const [inventoryQuantities, setInventoryQuantities] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('productTransferInventoryQuantities');
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,7 +89,31 @@ export default function ProductTransferPage() {
     
     loadTransfers();
     loadInventoryItems();
+  }, []);
+
+  // Save inventory quantities to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(inventoryQuantities).length > 0) {
+      localStorage.setItem('productTransferInventoryQuantities', JSON.stringify(inventoryQuantities));
+    }
   }, [inventoryQuantities]);
+
+  // Update all products' filteredItems when availableItems changes
+  useEffect(() => {
+    if (availableItems.length > 0) {
+      setProducts(prev => prev.map(product => ({
+        ...product,
+        filteredItems: availableItems
+      })));
+    }
+  }, [availableItems]);
+
+  // Save transfers to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('productTransferTransfers', JSON.stringify(transfers));
+    }
+  }, [transfers]);
 
   const loadInventoryItems = async () => {
     try {
@@ -105,11 +141,15 @@ export default function ProductTransferPage() {
       setAvailableItems(allItems);
       setFilteredItems(allItems);
       
-      // Initialize inventory quantities
+      // Initialize inventory quantities - merge with saved localStorage values
+      const savedQuantities = JSON.parse(localStorage.getItem('productTransferInventoryQuantities') || '{}');
       const initialQuantities = {};
       allItems.forEach(item => {
         const sanitizedName = item.name.replace(/[^a-zA-Z0-9_]/g, '_');
-        initialQuantities[`${item.type}_${sanitizedName}`] = item.availableQuantity;
+        const itemKey = `${item.type}_${sanitizedName}`;
+        // Use saved quantity if it exists (and is >= 0), otherwise use API quantity
+        const savedQty = savedQuantities[itemKey];
+        initialQuantities[itemKey] = (savedQty !== undefined && savedQty >= 0) ? savedQty : item.availableQuantity;
       });
       setInventoryQuantities(initialQuantities);
     } catch (error) {
@@ -141,7 +181,7 @@ export default function ProductTransferPage() {
             ...product, 
             itemName: item.name,
             description: item.description || "",
-            totalQty: Math.min(product.totalQty, item.availableQuantity),
+            totalQty: Math.min(product.totalQty, inventoryQuantities[`${item.type}_${item.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? item.availableQuantity),
             selectedInventoryItem: item,
             searchOpen: false
           }
@@ -156,9 +196,13 @@ export default function ProductTransferPage() {
     
     setProducts(prev => prev.map(product => {
       if (product.id === productId) {
-        if (product.selectedInventoryItem && qty > product.selectedInventoryItem.availableQuantity) {
-          showErrorAlert(`Only ${product.selectedInventoryItem.availableQuantity} items available`);
-          return product;
+        if (product.selectedInventoryItem) {
+          const sanitizedName = product.selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_');
+          const currentQty = inventoryQuantities[`${product.selectedInventoryItem.type}_${sanitizedName}`] ?? product.selectedInventoryItem.availableQuantity;
+          if (qty > currentQty) {
+            showErrorAlert(`Only ${currentQty} items available`);
+            return product;
+          }
         }
         return { ...product, totalQty: qty };
       }
@@ -238,8 +282,10 @@ export default function ProductTransferPage() {
       // Check inventory availability for all products
       const inventoryErrors = [];
       validProducts.forEach(product => {
-        const itemKey = `${product.type}_${product.itemName}`;
-        const currentQuantity = inventoryQuantities[itemKey] || product.availableQuantity || 0;
+        const itemType = product.selectedInventoryItem?.type || 'product';
+        const sanitizedName = product.itemName.replace(/[^a-zA-Z0-9_]/g, '_');
+        const itemKey = `${itemType}_${sanitizedName}`;
+        const currentQuantity = inventoryQuantities[itemKey] ?? product.selectedInventoryItem?.availableQuantity ?? 0;
         
         if (action === "transferred" && currentQuantity < product.totalQty) {
           inventoryErrors.push(`${product.itemName}: Only ${currentQuantity} available`);
@@ -260,7 +306,10 @@ export default function ProductTransferPage() {
         purpose,
         remarks,
         action,
-        products: validProducts
+        products: validProducts.map(product => ({
+          ...product,
+          type: product.selectedInventoryItem?.type || 'product'
+        }))
       };
 
       // Mock API call - replace with actual API
@@ -271,8 +320,10 @@ export default function ProductTransferPage() {
       // Update inventory quantities
       if (action === "transferred") {
         validProducts.forEach(product => {
-          const itemKey = `${product.type}_${product.itemName}`;
-          const currentQuantity = inventoryQuantities[itemKey] || 0;
+          const itemType = product.selectedInventoryItem?.type || 'product';
+          const sanitizedName = product.itemName.replace(/[^a-zA-Z0-9_]/g, '_');
+          const itemKey = `${itemType}_${sanitizedName}`;
+          const currentQuantity = inventoryQuantities[itemKey] ?? product.selectedInventoryItem?.availableQuantity ?? 0;
           const newQuantity = currentQuantity - product.totalQty;
           setInventoryQuantities(prev => ({
             ...prev,
@@ -349,8 +400,9 @@ export default function ProductTransferPage() {
       
       // Update inventory quantities for each product in the transfer
       transfer.products.forEach(product => {
-        const sanitizedName = product.name.replace(/[^a-zA-Z0-9_]/g, '_');
-        const itemKey = `${product.type}_${sanitizedName}`;
+        const itemType = product.type || 'product';
+        const sanitizedName = product.itemName.replace(/[^a-zA-Z0-9_]/g, '_');
+        const itemKey = `${itemType}_${sanitizedName}`;
         const currentQuantity = inventoryQuantities[itemKey] || 0;
         
         if (transfer.action === "transferred" && newAction === "returned") {
@@ -624,12 +676,18 @@ export default function ProductTransferPage() {
                               <div className={`absolute top-full left-0 right-0 mt-1 border rounded-lg shadow-lg max-h-60 overflow-y-auto z-10 ${
                                 darkMode ? "bg-[#1F2937] border-[#374151]" : "bg-white border-[#E5E7EB]"
                               }`}>
-                                {(product.filteredItems || []).length === 0 ? (
-                                  <div className={`px-3 py-2 text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                                    No items found
-                                  </div>
-                                ) : (
-                                  (product.filteredItems || []).map((item, itemIndex) => (
+                                {(() => {
+                                  const availableFilteredItems = (product.filteredItems || []).filter(item => {
+                                    const sanitizedName = item.name.replace(/[^a-zA-Z0-9_]/g, '_');
+                                    const currentQty = inventoryQuantities[`${item.type}_${sanitizedName}`];
+                                    return currentQty === undefined || currentQty > 0;
+                                  });
+                                  return availableFilteredItems.length === 0 ? (
+                                    <div className={`px-3 py-2 text-sm ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
+                                      No items found
+                                    </div>
+                                  ) : (
+                                    availableFilteredItems.map((item, itemIndex) => (
                                     <div
                                       key={itemIndex}
                                       onClick={() => handleItemSelect(product.id, item)}
@@ -643,7 +701,7 @@ export default function ProductTransferPage() {
                                             {item.name}
                                           </div>
                                           <div className={`text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                                            {item.type} • {inventoryQuantities[`${item.type}_${item.name}`] || item.availableQuantity} available
+                                            {item.type} • {(inventoryQuantities[`${item.type}_${item.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? item.availableQuantity)} available
                                           </div>
                                           {item.description && (
                                             <div className={`text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
@@ -656,12 +714,13 @@ export default function ProductTransferPage() {
                                     </div>
                                   ))
                                 )}
-                              </div>
-                            )}
+                              )()}
+                            </div>
+                          )}
                           </div>
                           {product.selectedInventoryItem && (
                             <div className={`mt-2 text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                              Selected: {product.selectedInventoryItem.availableQuantity} items available
+                              Selected: {(inventoryQuantities[`${product.selectedInventoryItem.type}_${product.selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? product.selectedInventoryItem.availableQuantity)} items available
                             </div>
                           )}
                         </div>
@@ -675,7 +734,7 @@ export default function ProductTransferPage() {
                             onChange={(e) => handleQuantityChange(product.id, e.target.value)}
                             placeholder="Enter quantity"
                             min="1"
-                            max={product.selectedInventoryItem?.availableQuantity || ""}
+                            max={product.selectedInventoryItem ? (inventoryQuantities[`${product.selectedInventoryItem.type}_${product.selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? product.selectedInventoryItem.availableQuantity) : ""}
                             className={`border rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 transition-all ${
                               darkMode
                                 ? "border-[#374151] focus:ring-[#3B82F6] bg-[#111827] text-white"
@@ -684,7 +743,7 @@ export default function ProductTransferPage() {
                           />
                           {product.selectedInventoryItem && (
                             <div className={`mt-1 text-xs ${darkMode ? "text-[#9CA3AF]" : "text-[#6B7280]"}`}>
-                              Max: {product.selectedInventoryItem.availableQuantity}
+                              Max: {inventoryQuantities[`${product.selectedInventoryItem.type}_${product.selectedInventoryItem.name.replace(/[^a-zA-Z0-9_]/g, '_')}`] ?? product.selectedInventoryItem.availableQuantity}
                             </div>
                           )}
                         </div>
