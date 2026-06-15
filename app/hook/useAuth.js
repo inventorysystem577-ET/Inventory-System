@@ -50,35 +50,48 @@ export const useAuth = () => {
     const applySession = async (session) => {
       if (!mounted) return;
 
-      if (!session) {
-        setUserEmail(null);
-        setDisplayName(null);
-        setRole(null);
-        setStatus(null);
-        setLoading(false);
-        setInitialized(true);
-        hasInitializedRef.current = true;
-        return;
+      try {
+        if (!session) {
+          setUserEmail(null);
+          setDisplayName(null);
+          setRole(null);
+          setStatus(null);
+          setLoading(false);
+          setInitialized(true);
+          hasInitializedRef.current = true;
+          return;
+        }
+
+        const metadataName =
+          session.user?.user_metadata?.display_name ||
+          session.user?.user_metadata?.name ||
+          null;
+        const metadataRole = session.user?.user_metadata?.role || "staff";
+        const metadataStatus = normalizeStatus(session.user?.user_metadata?.status);
+        const profile = await resolveProfile(session.user?.id);
+        const isMetadataAdmin = String(metadataRole).toLowerCase() === "admin";
+
+        // Batch state updates to avoid race conditions
+        if (mounted) {
+          const effectiveRole = profile?.role || metadataRole;
+          const isEffectiveAdmin = String(effectiveRole).toLowerCase() === "admin";
+
+          setUserEmail(session.user?.email || null);
+          setDisplayName(profile?.name || metadataName);
+          setRole(effectiveRole);
+          setStatus(isMetadataAdmin || isEffectiveAdmin ? "approved" : normalizeStatus(profile?.status || metadataStatus, "pending"));
+          setLoading(false);
+          setInitialized(true);
+          hasInitializedRef.current = true;
+        }
+      } catch (error) {
+        console.error("Error applying session:", error);
+        if (mounted) {
+          setLoading(false);
+          setInitialized(true);
+          hasInitializedRef.current = true;
+        }
       }
-
-      const metadataName =
-        session.user?.user_metadata?.display_name ||
-        session.user?.user_metadata?.name ||
-        null;
-      const metadataRole = session.user?.user_metadata?.role || "staff";
-      const metadataStatus = normalizeStatus(session.user?.user_metadata?.status);
-      const profile = await resolveProfile(session.user?.id);
-      const isMetadataAdmin = String(metadataRole).toLowerCase() === "admin";
-
-      setUserEmail(session.user?.email || null);
-      setDisplayName(profile?.name || metadataName);
-      const effectiveRole = profile?.role || metadataRole;
-      const isEffectiveAdmin = String(effectiveRole).toLowerCase() === "admin";
-      setRole(effectiveRole);
-      setStatus(isMetadataAdmin || isEffectiveAdmin ? "approved" : normalizeStatus(profile?.status || metadataStatus, "pending"));
-      setLoading(false);
-      setInitialized(true);
-      hasInitializedRef.current = true;
     };
 
     const {
@@ -123,16 +136,16 @@ export const useAuth = () => {
     const handleVisibilityChange = async () => {
       if (!mounted || !hasInitializedRef.current) return;
       if (document.visibilityState !== 'visible') return;
-      
-      // Reset loading state to show spinner while checking session
-      setLoading(true);
-      
+
+      // Only refresh if auth state seems stale (optional: add timestamp check)
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        await applySession(session);
+        // Only update if session changed
+        if (session?.user?.id !== userEmail) {
+          await applySession(session);
+        }
       } catch (error) {
-        console.error("Error checking session on visibility change:", error.message);
-        await applySession(null);
+        console.error("Error refreshing session on visibility change:", error.message);
       }
     };
 
