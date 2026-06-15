@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient.js";
 // or if lib is inside app folder: import { supabase } from "@/app/lib/supabaseClient";
 
 // REGISTER USER

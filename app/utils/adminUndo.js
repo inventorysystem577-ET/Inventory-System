@@ -1,4 +1,4 @@
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient.js";
 
 const ADMIN_UNDO_KEY = "adminUndo:lastAction:v1";
 const ADMIN_UNDO_TABLE = "admin_deleted_records";

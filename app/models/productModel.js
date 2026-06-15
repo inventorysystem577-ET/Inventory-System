@@ -1,4 +1,4 @@
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient.js";
 
 const normalizeName = (value = "") =>
   value.toString().trim().toLowerCase().replace(/\s+/g, " ");

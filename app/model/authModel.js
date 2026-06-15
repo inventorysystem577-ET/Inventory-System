@@ -1,5 +1,5 @@
 // app/models/authModel.js
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient.js";
 
 /**
  * Login using Supabase Auth

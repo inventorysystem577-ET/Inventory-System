@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../hook/useAuth";
 import { isAdminRole } from "../../utils/roleHelper";
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "../../../lib/supabaseClient.js";
 import {
   fetchProductInController,
   fetchProductOutController,

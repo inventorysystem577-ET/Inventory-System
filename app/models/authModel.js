@@ -1,4 +1,4 @@
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient.js";
 import { createClient } from "@supabase/supabase-js";
 
 const PENDING_REQUESTS_TABLE = "access_requests_temp";
