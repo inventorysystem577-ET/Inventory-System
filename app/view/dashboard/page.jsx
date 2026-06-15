@@ -76,6 +76,7 @@ export default function page() {
   const [parcelShipped, setParcelShipped] = useState([]);
   const [parcelDelivery, setParcelDelivery] = useState([]);
   const [stockItems, setStockItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [parcelShippedCount, setParcelShippedCount] = useState(0);
   const [parcelDeliveryCount, setParcelDeliveryCount] = useState(0);
@@ -255,6 +256,8 @@ export default function page() {
         setProductOutCount((productOutRes || []).length || 0);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -326,6 +329,20 @@ export default function page() {
           className={`transition-all duration-300 ${sidebarOpen ? "lg:ml-64" : "ml-0"} pt-16`}
         >
           <div className="p-4 sm:p-6 lg:p-8">
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex flex-col items-center justify-center py-24">
+                <div className="animate-spin mb-4">
+                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+                <p className={`text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+                  Loading dashboard...
+                </p>
+              </div>
+            )}
+
+            {!isLoading && (
+            <>
             {/* Summary Cards - Stock In / Stock Out */}
             <div
               className={`grid gap-4 sm:gap-6 mb-8 ${
@@ -837,6 +854,8 @@ export default function page() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
