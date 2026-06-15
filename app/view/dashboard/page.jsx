@@ -226,30 +226,36 @@ export default function page() {
     if (!authInitialized) return;
 
     const fetchData = async () => {
-      const shippedRes = await fetchParcelItems();
-      const deliveryRes = await fetchParcelOutItems();
+      try {
+        // Fetch all data in parallel instead of sequential
+        const [shippedRes, deliveryRes, productInRes, productOutRes] = await Promise.all([
+          fetchParcelItems(),
+          fetchParcelOutItems(),
+          fetchProductInController(),
+          fetchProductOutController(),
+        ]);
 
-      setParcelShipped(shippedRes || []);
-      setStockItems(shippedRes || []);
+        // Set parcel data
+        setParcelShipped(shippedRes || []);
+        setStockItems(shippedRes || []);
+        const itemsWithStock =
+          (shippedRes || []).filter((item) => item.quantity > 0).length || 0;
+        setParcelShippedCount(itemsWithStock);
 
-      const itemsWithStock =
-        (shippedRes || []).filter((item) => item.quantity > 0).length || 0;
-      setParcelShippedCount(itemsWithStock);
+        // Set delivery data
+        setParcelDelivery(deliveryRes || []);
+        setParcelDeliveryCount((deliveryRes || []).length || 0);
 
-      setParcelDelivery(deliveryRes || []);
-      setParcelDeliveryCount((deliveryRes || []).length || 0);
-
-      const productInRes = await fetchProductInController();
-      const productOutRes = await fetchProductOutController();
-
-      setProductIn(productInRes || []);
-      setProductOut(productOutRes || []);
-
-      const productInWithStock =
-        (productInRes || []).filter((item) => item.quantity > 0).length || 0;
-      setProductInCount(productInWithStock);
-      setProductOutCount((productOutRes || []).length || 0);
-
+        // Set product data
+        setProductIn(productInRes || []);
+        setProductOut(productOutRes || []);
+        const productInWithStock =
+          (productInRes || []).filter((item) => item.quantity > 0).length || 0;
+        setProductInCount(productInWithStock);
+        setProductOutCount((productOutRes || []).length || 0);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
     };
 
     fetchData();
