@@ -34,17 +34,32 @@ export const useAuth = () => {
     let mounted = true;
 
     const resolveProfile = async (userId) => {
-      const { data, error } = await supabase
-        .from(APPROVED_USERS_TABLE)
-        .select("name, role, is_approved, rejected_at")
-        .eq("id", userId)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from(APPROVED_USERS_TABLE)
+          .select("name, role, is_approved, rejected_at")
+          .eq("id", userId)
+          .maybeSingle();
 
-      if (!error && data) {
-        data.status = mapRowToStatus(data);
-        return data;
+        if (error) {
+          console.warn("Error fetching user profile:", error.message);
+          // If profile fetch fails, return null (don't log out)
+          // User will be treated as staff with pending status from metadata
+          return null;
+        }
+
+        if (data) {
+          data.status = mapRowToStatus(data);
+          return data;
+        }
+
+        // No profile found - this is OK, user might not have created profile yet
+        return null;
+      } catch (error) {
+        console.error("Error resolving profile:", error);
+        // Don't throw - let user stay logged in with metadata role
+        return null;
       }
-      return null;
     };
 
     const applySession = async (session) => {
@@ -137,11 +152,11 @@ export const useAuth = () => {
       if (!mounted || !hasInitializedRef.current) return;
       if (document.visibilityState !== 'visible') return;
 
-      // Only refresh if auth state seems stale (optional: add timestamp check)
+      // Only refresh if auth state seems stale
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        // Only update if session changed
-        if (session?.user?.id !== userEmail) {
+        // Only update if session actually changed (compare emails, not id with email)
+        if (session?.user?.email !== userEmail) {
           await applySession(session);
         }
       } catch (error) {
