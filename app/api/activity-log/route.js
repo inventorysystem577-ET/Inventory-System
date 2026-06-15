@@ -6,11 +6,15 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const userType = searchParams.get("userType");
     const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = 50;
+    const offset = (page - 1) * limit;
 
     let query = supabase
       .from("activity_logs")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (userType && userType !== "all") {
       query = query.eq("user_type", userType);

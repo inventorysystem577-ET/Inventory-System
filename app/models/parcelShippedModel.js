@@ -6,7 +6,7 @@ const findExistingParcelInItem = async (payload) => {
   const itemName = normalizeItemName(payload.item_name);
   if (!itemName) return { data: [], error: null };
 
-  let query = supabase.from("parcel_in").select("*").limit(1);
+  let query = supabase.from("parcel_in").select("id,item_name,item_code,quantity,date,time_in,shipping_mode,client_name,price,category,description").limit(1);
 
   if (payload.item_code) {
     const { data, error } = await query.eq("item_code", payload.item_code);
@@ -127,7 +127,7 @@ export const addParcelInItem = async (item) => {
 export const getParcelInItems = async () => {
   const { data, error } = await supabase
     .from("parcel_in")
-    .select("*")
+    .select("id,item_name,item_code,quantity,date,time_in,shipping_mode,client_name,price,category,description")
     .order("id", { ascending: false });
 
   if (error) return { error };

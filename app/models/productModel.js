@@ -50,7 +50,7 @@ const findExistingProductIn = async (payload) => {
   if (productCode) {
     const { data, error } = await supabase
       .from("product_in")
-      .select("*")
+      .select("id,product_name,product_code,quantity,date,time_in,price,category,description")
       .eq("product_code", productCode)
       .limit(1);
 
@@ -69,7 +69,7 @@ const findExistingProductIn = async (payload) => {
 
   const { data, error } = await supabase
     .from("product_in")
-    .select("*")
+    .select("id,product_name,product_code,quantity,date,time_in,price,category,description")
     .ilike("product_name", productName)
     .limit(1);
 
@@ -644,7 +644,7 @@ export const upsertProductIn = async (data) => {
 export const getProductIn = async () => {
   const { data, error } = await supabase
     .from("product_in")
-    .select("*")
+    .select("id,product_name,product_code,quantity,date,time_in,price,category,description,components")
     .order("id", { ascending: false });
 
   if (error) {
@@ -726,7 +726,7 @@ export const restoreProductInItems = async (rows = []) => {
 export const getProductInByName = async (product_name) => {
   const { data, error } = await supabase
     .from("product_in")
-    .select("*")
+    .select("id,product_name,product_code,quantity,date,time_in,price,category,description,components")
     .eq("product_name", product_name)
     .order("id", { ascending: false })
     .limit(1);
@@ -751,7 +751,7 @@ export const deductProductIn = async (product_name, quantity) => {
   const requestedQty = toNumber(quantity);
   const { data: productRows, error } = await supabase
     .from("product_in")
-    .select("*")
+    .select("id,product_name,product_code,quantity,date,time_in,price,category,description,components")
     .eq("product_name", product_name)
     .gt("quantity", 0)
     .order("id", { ascending: true });
@@ -871,7 +871,7 @@ export const insertProductOut = async (data) => {
 export const getProductOut = async () => {
   const { data, error } = await supabase
     .from("products_out")
-    .select("*")
+    .select("id,product_name,quantity,date,time_out,unit_out,price,reason,category,description,components")
     .order("id", { ascending: false });
 
   if (error) {
