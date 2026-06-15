@@ -1,4 +1,4 @@
-import { supabase } from "../../../lib/supabaseClient.js";
+import { supabase } from "../../../../lib/supabaseClient.js";
 
 const REQUESTS_TABLE = "access_requests_temp";
 const PROFILES_TABLE = "user_profiles";
