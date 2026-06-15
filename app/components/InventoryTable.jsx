@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { getPageNumbers } from "../utils/paginationHelpers";
 
-export default function InventoryTable({
+function InventoryTableComponent({
   darkMode,
   tableRef,
   config,
@@ -457,3 +457,5 @@ export default function InventoryTable({
     </div>
   );
 }
+
+export default React.memo(InventoryTableComponent);

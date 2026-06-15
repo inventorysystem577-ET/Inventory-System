@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function InventoryFilterRow({ darkMode, lightFocusClass, filters }) {
+function InventoryFilterRowComponent({ darkMode, lightFocusClass, filters }) {
   const {
     statusValue,
     onStatusChange,
@@ -109,3 +109,5 @@ export default function InventoryFilterRow({ darkMode, lightFocusClass, filters 
     </div>
   );
 }
+
+export default React.memo(InventoryFilterRowComponent);
