@@ -80,6 +80,7 @@ function PageContent() {
   const [showMultipleInput, setShowMultipleInput] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+  const [searchQuery, setSearchQuery] = useState("");
   const { role, displayName, userEmail, initialized: authInitialized } = useAuth();
   const isAdmin = isAdminRole(role);
 
@@ -130,6 +131,11 @@ function PageContent() {
       setName(itemParam);
     }
   }, [itemParam]);
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   // Sync name, quantity, and itemCode with first parcel row when in single input mode
   useEffect(() => {
@@ -331,10 +337,17 @@ function PageContent() {
     alert(`${successCount} Stock In record(s) added successfully.`);
   };
 
+  // Filter items based on search query
+  const filteredItems = items.filter((item) =>
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.item_code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = items.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   const goToNextPage = () => {
@@ -793,6 +806,35 @@ function PageContent() {
 
             {isAdmin && showStockInHistory && (
             <>
+            {/* Search Bar */}
+            <div className="mb-6 animate__animated animate__fadeInUp animate__fast">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by item name, code, or category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all ${
+                    darkMode
+                      ? "bg-[#1F2937] border-[#374151] text-white focus:ring-[#3B82F6] focus:border-[#3B82F6]"
+                      : "bg-white border-[#D1D5DB] text-black focus:ring-[#1E3A8A] focus:border-[#1E3A8A]"
+                  }`}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-sm font-medium rounded ${
+                      darkMode
+                        ? "bg-[#374151] text-[#9CA3AF] hover:bg-[#4B5563]"
+                        : "bg-[#E5E7EB] text-[#6B7280] hover:bg-[#D1D5DB]"
+                    }`}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Stats */}
             <div
               className={`mb-6 flex justify-between p-4 rounded-lg shadow animate__animated animate__fadeInUp animate__fast ${
@@ -802,15 +844,16 @@ function PageContent() {
               }`}
             >
               <div className="font-medium">
-                Unique Items: <span className="font-bold">{uniqueItemCount}</span>
+                Unique Items: <span className="font-bold">{getUniqueItemCount(filteredItems)}</span>
               </div>
               <div className="font-medium">
-                Total Records: <span className="font-bold">{items.length}</span>
+                Total Records: <span className="font-bold">{filteredItems.length}</span>
+                {searchQuery && <span className="text-xs text-gray-500 ml-2">(filtered from {items.length})</span>}
               </div>
               <div className="font-medium">
                 Total Quantity:{" "}
                 <span className="font-bold">
-                  {items.reduce((sum, item) => sum + Number(item.quantity), 0)}
+                  {filteredItems.reduce((sum, item) => sum + Number(item.quantity), 0)}
                 </span>
               </div>
             </div>

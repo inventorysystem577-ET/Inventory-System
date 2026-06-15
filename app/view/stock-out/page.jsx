@@ -54,6 +54,7 @@ export default function Page() {
   const [isUpdatingCategoryId, setIsUpdatingCategoryId] = useState(null);
   const [showStockOutHistory, setShowStockOutHistory] = useState(false);
   const [showMultipleInput, setShowMultipleInput] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleTransferCategory = async (itemId, nextCategory) => {
     setIsUpdatingCategoryId(itemId);
@@ -307,9 +308,15 @@ export default function Page() {
     setCategory(CATEGORIES.OTHERS);
   };
 
-  const filteredItems = selectedFilter
-    ? items.filter((item) => item.name === selectedFilter)
-    : items;
+  const filteredItems = items.filter((item) => {
+    const matchesFilter = selectedFilter ? item.name === selectedFilter : true;
+    const matchesSearch = searchQuery
+      ? item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+    return matchesFilter && matchesSearch;
+  });
+
   const filterOptions = Array.from(
     new Set((items || []).map((item) => item.name).filter(Boolean)),
   ).sort((a, b) => a.localeCompare(b));
@@ -782,30 +789,60 @@ export default function Page() {
             {showStockOutHistory && (
             <>
             {/* Filter */}
-            <div className="flex items-center gap-2 mb-4">
-              <label
-                className={`text-sm font-medium ${
-                  darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
-                }`}
-              >
-                Filter by Item:
-              </label>
-              <select
-                value={selectedFilter}
-                onChange={(e) => setSelectedFilter(e.target.value)}
-                className={`border rounded-lg px-3 py-2 w-60 focus:outline-none focus:ring-2 transition-all ${
-                  darkMode
-                    ? "border-[#374151] focus:ring-[#EF4444] focus:border-[#EF4444] bg-[#111827] text-white"
-                    : "border-[#D1D5DB] focus:ring-[#DC2626] focus:border-[#DC2626] bg-white text-black"
-                }`}
-              >
-                <option value="">All Items</option>
-                {filterOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+            <div className="mb-4 space-y-3">
+              {/* Search Input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by item name or category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all ${
+                    darkMode
+                      ? "bg-[#1F2937] border-[#374151] text-white focus:ring-[#EF4444] focus:border-[#EF4444]"
+                      : "bg-white border-[#D1D5DB] text-black focus:ring-[#DC2626] focus:border-[#DC2626]"
+                  }`}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-sm font-medium rounded ${
+                      darkMode
+                        ? "bg-[#374151] text-[#9CA3AF] hover:bg-[#4B5563]"
+                        : "bg-[#E5E7EB] text-[#6B7280] hover:bg-[#D1D5DB]"
+                    }`}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Dropdown */}
+              <div className="flex items-center gap-2">
+                <label
+                  className={`text-sm font-medium whitespace-nowrap ${
+                    darkMode ? "text-[#D1D5DB]" : "text-[#374151]"
+                  }`}
+                >
+                  Or Filter by Item:
+                </label>
+                <select
+                  value={selectedFilter}
+                  onChange={(e) => setSelectedFilter(e.target.value)}
+                  className={`border rounded-lg px-3 py-2 flex-1 focus:outline-none focus:ring-2 transition-all ${
+                    darkMode
+                      ? "border-[#374151] focus:ring-[#EF4444] focus:border-[#EF4444] bg-[#111827] text-white"
+                      : "border-[#D1D5DB] focus:ring-[#DC2626] focus:border-[#DC2626] bg-white text-black"
+                  }`}
+                >
+                  <option value="">All Items</option>
+                  {filterOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Stats */}
