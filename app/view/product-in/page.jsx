@@ -146,6 +146,7 @@ export default function ProductInPage() {
 
   const [errorBar, setErrorBar] = useState("");
   const [successBar, setSuccessBar] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [alternativeRequest, setAlternativeRequest] = useState(null);
   const [missing, setMissing] = useState([]);
   const [showMissingComponentsModal, setShowMissingComponentsModal] =
@@ -489,11 +490,13 @@ export default function ProductInPage() {
   };
 
   const handleUseAlternatives = async () => {
-    if (!alternativeRequest) return;
+    if (!alternativeRequest || isSubmitting) return;
 
+    setIsSubmitting(true);
     setErrorBar("");
     setSuccessBar("");
 
+    try {
     const result = await handleAddProductIn(
       alternativeRequest.product_name,
       alternativeRequest.quantity,
@@ -576,6 +579,9 @@ export default function ProductInPage() {
     setCustomComponents([{ name: "", quantity: "" }]);
     setCustomComponentsError("");
     setShowCustomComponentsModal(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddMissingToStockIn = async (payload) => {
