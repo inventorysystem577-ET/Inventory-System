@@ -641,7 +641,28 @@ export const upsertProductIn = async (data) => {
   };
 };
 
-export const getProductIn = async () => {
+// Fetch with pagination for better performance
+export const getProductIn = async (limit = 100, offset = 0) => {
+  const { data, error } = await supabase
+    .from("product_in")
+    .select("*")
+    .order("id", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error("Supabase fetch error:", error);
+    return [];
+  }
+  return data.map((item) => ({
+    ...item,
+    components: Array.isArray(item.components)
+      ? item.components
+      : JSON.parse(item.components || "[]"),
+  }));
+};
+
+// Get all products (use with caution - can be slow)
+export const getAllProductIn = async () => {
   const { data, error } = await supabase
     .from("product_in")
     .select("*")
@@ -868,7 +889,29 @@ export const insertProductOut = async (data) => {
   return { data: insertedData, error: null };
 };
 
-export const getProductOut = async () => {
+// Fetch with pagination for better performance
+export const getProductOut = async (limit = 100, offset = 0) => {
+  const { data, error } = await supabase
+    .from("products_out")
+    .select("*")
+    .order("id", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error("Supabase fetch error:", error);
+    return [];
+  }
+
+  return data.map((item) => ({
+    ...item,
+    components: Array.isArray(item.components)
+      ? item.components
+      : JSON.parse(item.components || "[]"),
+  }));
+};
+
+// Get all products (use with caution - can be slow)
+export const getAllProductOut = async () => {
   const { data, error } = await supabase
     .from("products_out")
     .select("*")

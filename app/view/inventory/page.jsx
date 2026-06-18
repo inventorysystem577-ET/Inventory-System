@@ -4,9 +4,16 @@
 // Force dynamic rendering to avoid pre-rendering issues with useSearchParams
 export const dynamic = "force-dynamic";
 
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+// Lazy load heavy libraries - only when needed
+const loadPdfLibraries = async () => {
+  const [jsPDFModule, autoTableModule] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  return { jsPDF: jsPDFModule.default, autoTable: autoTableModule.default };
+};
+
+const loadXlsx = () => import("xlsx");
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
