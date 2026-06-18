@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 import WelcomeIcon from "../../components/WelcomeIcon";
@@ -17,7 +17,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const onSubmit = (e) => {
     if (mode === "request") {
@@ -77,6 +82,13 @@ export default function LoginPage() {
       },
     });
   };
+
+  // Prevent hydration mismatch caused by browser extensions
+  if (!mounted) {
+    return (
+      <div className="flex h-screen font-inter overflow-hidden bg-black md:bg-white" />
+    );
+  }
 
   return (
     <div className="flex h-screen font-inter overflow-hidden">
