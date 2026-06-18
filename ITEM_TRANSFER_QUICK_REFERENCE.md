@@ -8,7 +8,7 @@
 
 ## How It Works Now
 
-### When User Selects "RETURNED"
+### When User Selects "RETURNED" (Pag Return - Padagdag)
 ```
 Item Transfer Form:
 ├─ Item Name: "Arduino Board"
@@ -18,11 +18,11 @@ Item Transfer Form:
 
 Result:
 → Record saved to history ✓
-→ Arduino Board quantity DECREASES by 5 ✓
+→ Arduino Board quantity INCREASES by 5 ✓ (Padagdag)
 → Activity logged ✓
 ```
 
-### When User Selects "RELEASED"
+### When User Selects "RELEASED" (Pag Release - Bawas)
 ```
 Item Transfer Form:
 ├─ Item Name: "Arduino Board"
@@ -32,7 +32,7 @@ Item Transfer Form:
 
 Result:
 → Record saved to history ✓
-→ Arduino Board quantity INCREASES by 5 ✓
+→ Arduino Board quantity DECREASES by 5 ✓ (Bawas)
 → Activity logged ✓
 ```
 
@@ -76,7 +76,7 @@ Result:
 
 ## Examples
 
-### Example 1: Return Components
+### Example 1: Return Components (Pag Return - Padagdag)
 ```
 User at Item Transfer page:
 1. Fills:
@@ -90,11 +90,11 @@ User at Item Transfer page:
 
 Result:
 ✓ Transfer record created
-✓ LED Light inventory: 100 → 90 (decreased by 10)
+✓ LED Light inventory: 100 → 110 (increased by 10) ⬆️
 ✓ Activity log: "Transferred 10x LED Light (RETURNED)"
 ```
 
-### Example 2: Release Products
+### Example 2: Release Products (Pag Release - Bawas)
 ```
 User at Item Transfer page:
 1. Fills:
@@ -108,7 +108,7 @@ User at Item Transfer page:
 
 Result:
 ✓ Transfer record created
-✓ Arduino Kit inventory: 50 → 53 (increased by 3)
+✓ Arduino Kit inventory: 50 → 47 (decreased by 3) ⬇️
 ✓ Activity log: "Transferred 3x Arduino Kit (RELEASED)"
 ```
 
@@ -121,9 +121,9 @@ Multiple Item Input:
 
 Result:
 ✓ All 3 records created
-✓ LED Light: decreased by 5
-✓ Arduino Board: increased by 2
-✓ Resistor Pack: decreased by 20
+✓ LED Light: increased by 5 ⬆️
+✓ Arduino Board: decreased by 2 ⬇️
+✓ Resistor Pack: increased by 20 ⬆️
 ✓ All activity logged
 ```
 

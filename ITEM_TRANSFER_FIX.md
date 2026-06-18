@@ -2,8 +2,8 @@
 
 ## Problem
 The Item Transfer page was only **recording transfers** without actually **updating inventory quantities** based on the remark type:
-- **RETURNED** should **decrease** quantity
-- **RELEASED** should **increase** quantity
+- **RETURNED** should **increase** quantity (Padagdag)
+- **RELEASED** should **decrease** quantity (Bawas)
 
 ## Solution Implemented
 
@@ -14,10 +14,11 @@ The Item Transfer page was only **recording transfers** without actually **updat
 
 ### 2. **New API Endpoints Created**
 
-#### `/api/product/decrease-quantity` (POST)
-**Used when:** Remark = "RETURNED"
+#### `/api/product/increase-quantity` (POST)
+**Used when:** Remark = "RETURNED" (Pag Return - Padagdag)
 - Finds the item in inventory
-- Decreases `quantity_in` by the specified amount
+- Increases `quantity_in` by the specified amount ⬆️
+- Creates new entry if item doesn't exist
 - Returns success/error status
 
 **Request Body:**
@@ -31,11 +32,10 @@ The Item Transfer page was only **recording transfers** without actually **updat
 }
 ```
 
-#### `/api/product/increase-quantity` (POST)
-**Used when:** Remark = "RELEASED"
+#### `/api/product/decrease-quantity` (POST)
+**Used when:** Remark = "RELEASED" (Pag Release - Bawas)
 - Finds the item in inventory
-- Increases `quantity_in` by the specified amount
-- Creates new entry if item doesn't exist
+- Decreases `quantity_in` by the specified amount ⬇️
 - Returns success/error status
 
 **Request Body:**
@@ -60,10 +60,10 @@ User submits form:
   └─ Date: "2026-06-18"
        ↓
 1. Record saved to localStorage ✅
-2. If RETURNED: Call /api/product/decrease-quantity
-   - Arduino Board quantity decreases by 5
-3. If RELEASED: Call /api/product/increase-quantity
-   - Arduino Board quantity increases by 5
+2. If RETURNED: Call /api/product/increase-quantity
+   - Arduino Board quantity increases by 5 (Padagdag) ⬆️
+3. If RELEASED: Call /api/product/decrease-quantity
+   - Arduino Board quantity decreases by 5 (Bawas) ⬇️
 4. Activity logged ✅
 ```
 
@@ -77,9 +77,9 @@ Multiple rows submitted:
        ↓
 1. All records saved to localStorage ✅
 2. For each row:
-   - Row 1: Decrease Item A by 5
-   - Row 2: Increase Item B by 3
-   - Row 3: Decrease Item C by 2
+   - Row 1: Increase Item A by 5 ⬆️ (Padagdag)
+   - Row 2: Decrease Item B by 3 ⬇️ (Bawas)
+   - Row 3: Increase Item C by 2 ⬆️ (Padagdag)
 3. Activity logged ✅
 ```
 

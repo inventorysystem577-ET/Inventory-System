@@ -264,25 +264,7 @@ export default function StockTransferPage() {
     try {
       // Update inventory based on remark type
       if (cleanRecord.remark === "RETURNED") {
-        // RETURNED: Decrease quantity (like product_out)
-        const response = await fetch("/api/product/decrease-quantity", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            itemName: cleanRecord.itemName,
-            quantity: cleanRecord.quantity,
-            date: cleanRecord.date,
-            category: cleanRecord.category,
-            type: cleanRecord.type,
-          }),
-        });
-
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.message || "Failed to decrease inventory");
-        }
-      } else if (cleanRecord.remark === "RELEASED") {
-        // RELEASED: Increase quantity (like product_in)
+        // RETURNED: Increase quantity (Padagdag sa inventory)
         const response = await fetch("/api/product/increase-quantity", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -298,6 +280,24 @@ export default function StockTransferPage() {
         if (!response.ok) {
           const err = await response.json();
           throw new Error(err.message || "Failed to increase inventory");
+        }
+      } else if (cleanRecord.remark === "RELEASED") {
+        // RELEASED: Decrease quantity (Bawas sa inventory)
+        const response = await fetch("/api/product/decrease-quantity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemName: cleanRecord.itemName,
+            quantity: cleanRecord.quantity,
+            date: cleanRecord.date,
+            category: cleanRecord.category,
+            type: cleanRecord.type,
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || "Failed to decrease inventory");
         }
       }
     } catch (inventoryError) {
@@ -439,22 +439,7 @@ export default function StockTransferPage() {
     for (const record of newRecords) {
       try {
         if (record.remark === "RETURNED") {
-          const response = await fetch("/api/product/decrease-quantity", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              itemName: record.itemName,
-              quantity: record.quantity,
-              date: record.date,
-              category: record.category,
-              type: record.type,
-            }),
-          });
-
-          if (!response.ok) {
-            console.warn(`Failed to decrease inventory for ${record.itemName}`);
-          }
-        } else if (record.remark === "RELEASED") {
+          // RETURNED: Increase quantity (Padagdag sa inventory)
           const response = await fetch("/api/product/increase-quantity", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -469,6 +454,23 @@ export default function StockTransferPage() {
 
           if (!response.ok) {
             console.warn(`Failed to increase inventory for ${record.itemName}`);
+          }
+        } else if (record.remark === "RELEASED") {
+          // RELEASED: Decrease quantity (Bawas sa inventory)
+          const response = await fetch("/api/product/decrease-quantity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itemName: record.itemName,
+              quantity: record.quantity,
+              date: record.date,
+              category: record.category,
+              type: record.type,
+            }),
+          });
+
+          if (!response.ok) {
+            console.warn(`Failed to decrease inventory for ${record.itemName}`);
           }
         }
       } catch (err) {
