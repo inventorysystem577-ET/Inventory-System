@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Global error handler for auth issues
 function AuthErrorHandler() {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    // Ensure this only runs on the client after hydration
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const handleAuthError = (event) => {
       // Normalize error message from different event shapes
       let msg = null;
@@ -47,7 +56,7 @@ function AuthErrorHandler() {
       window.removeEventListener('error', handleAuthError);
       window.removeEventListener('unhandledrejection', handleAuthError);
     };
-  }, []);
+  }, [mounted]);
 
   return null;
 }
