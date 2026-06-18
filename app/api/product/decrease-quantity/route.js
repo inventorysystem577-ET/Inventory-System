@@ -11,16 +11,14 @@ export async function POST(req) {
       );
     }
 
-    // Determine which table to update based on type
-    const tableName = type === "PRODUCT" ? "product_in" : "stock";
+    // Always use product_in table for inventory
+    const tableName = "product_in";
 
-    // Get current item
+    // Search using case-insensitive match (like the product model does)
     const { data: items, error: fetchError } = await supabase
       .from(tableName)
-      .select("id, quantity_in")
-      .eq("product_name", itemName)
-      .eq("category", category)
-      .gte("date", date)
+      .select("id, quantity_in, product_name")
+      .ilike("product_name", itemName)
       .order("date", { ascending: false })
       .limit(1);
 

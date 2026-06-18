@@ -11,16 +11,14 @@ export async function POST(req) {
       );
     }
 
-    // Determine which table to update based on type
-    const tableName = type === "PRODUCT" ? "product_in" : "stock";
+    // Always use product_in table for inventory
+    const tableName = "product_in";
 
-    // Get current item (most recent entry)
+    // Search using case-insensitive match (like the product model does)
     const { data: items, error: fetchError } = await supabase
       .from(tableName)
-      .select("id, quantity_in")
-      .eq("product_name", itemName)
-      .eq("category", category)
-      .lte("date", date)
+      .select("id, quantity_in, product_name")
+      .ilike("product_name", itemName)
       .order("date", { ascending: false })
       .limit(1);
 
@@ -29,16 +27,15 @@ export async function POST(req) {
     }
 
     if (!items || items.length === 0) {
-      // If item doesn't exist, create new entry with the quantity
+      // If item doesn't exist, create new entry
       const { data: newItem, error: insertError } = await supabase
         .from(tableName)
         .insert({
-          product_name: itemName,
+          product_name: itemName.trim(),
           quantity_in: quantity,
           date: date,
-          category: category,
           time_in: new Date().toISOString().split("T")[1],
-          description: "Released via Item Transfer",
+          description: "Added via Item Transfer Return",
         })
         .select();
 
