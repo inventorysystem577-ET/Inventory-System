@@ -154,10 +154,17 @@ export const useAuth = () => {
 
       // Only refresh if auth state seems stale
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        // Only update if session actually changed (compare emails, not id with email)
-        if (session?.user?.email !== userEmail) {
+        // Try to refresh token first
+        const { data: { session } } = await supabase.auth.refreshSession();
+        if (session) {
           await applySession(session);
+        } else {
+          // If refresh fails, get current session
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          // Only update if session actually changed (compare emails, not id with email)
+          if (currentSession?.user?.email !== userEmail) {
+            await applySession(currentSession);
+          }
         }
       } catch (error) {
         console.error("Error refreshing session on visibility change:", error.message);
@@ -166,11 +173,23 @@ export const useAuth = () => {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
+    // Also refresh on page navigation (beforeunload)
+    const handleBeforeUnload = async () => {
+      try {
+        await supabase.auth.refreshSession();
+      } catch (error) {
+        console.warn("Could not refresh session before navigation");
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
       clearTimeout(fallback);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
 
