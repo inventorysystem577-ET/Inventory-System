@@ -185,9 +185,18 @@ export default function StockTransferPage() {
       return;
     }
 
+    if (field === "quantity") {
+      const qty = Number(value);
+      setForm((prev) => ({
+        ...prev,
+        quantity: isNaN(qty) || qty < 1 ? 1 : qty,
+      }));
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
-      [field]: field === "quantity" ? Number(value || 1) : value,
+      [field]: value,
     }));
   };
 
@@ -201,7 +210,8 @@ export default function StockTransferPage() {
     if (!row.type) return "Type is required.";
     if (!row.category) return "Category is required.";
     if (!row.date) return "Date is required.";
-    if (Number(row.quantity || 0) <= 0) return "Quantity must be greater than 0.";
+    const qty = Number(row.quantity);
+    if (isNaN(qty) || qty < 1) return "Quantity must be 1 or greater.";
     if (!row.remark) return "Remark is required.";
     if (!(row.receiver || "").trim()) return "Receiver is required.";
     return "";
@@ -375,9 +385,17 @@ export default function StockTransferPage() {
           };
         }
 
+        if (field === "quantity") {
+          const qty = Number(value);
+          return {
+            ...row,
+            quantity: isNaN(qty) || qty < 1 ? 1 : qty,
+          };
+        }
+
         return {
           ...row,
-          [field]: field === "quantity" ? Number(value || 1) : value,
+          [field]: value,
         };
       }),
     );
