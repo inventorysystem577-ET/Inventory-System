@@ -261,13 +261,57 @@ export default function StockTransferPage() {
 
     setRecords((prev) => [newRecord, ...prev]);
 
+    try {
+      // Update inventory based on remark type
+      if (cleanRecord.remark === "RETURNED") {
+        // RETURNED: Decrease quantity (like product_out)
+        const response = await fetch("/api/product/decrease-quantity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemName: cleanRecord.itemName,
+            quantity: cleanRecord.quantity,
+            date: cleanRecord.date,
+            category: cleanRecord.category,
+            type: cleanRecord.type,
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || "Failed to decrease inventory");
+        }
+      } else if (cleanRecord.remark === "RELEASED") {
+        // RELEASED: Increase quantity (like product_in)
+        const response = await fetch("/api/product/increase-quantity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemName: cleanRecord.itemName,
+            quantity: cleanRecord.quantity,
+            date: cleanRecord.date,
+            category: cleanRecord.category,
+            type: cleanRecord.type,
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || "Failed to increase inventory");
+        }
+      }
+    } catch (inventoryError) {
+      console.warn("Inventory update warning:", inventoryError.message);
+      // Continue even if inventory update fails - record is already saved
+    }
+
     await logActivity({
       userId: userEmail || null,
       userName: displayName || userEmail || "Unknown User",
       userType: role || "staff",
       action: "CREATE TRANSFER",
       module: "Item Transfer",
-      details: `Transferred ${cleanRecord.quantity}x ${cleanRecord.itemName} (${cleanRecord.type} → ${cleanRecord.category})`,
+      details: `Transferred ${cleanRecord.quantity}x ${cleanRecord.itemName} (${cleanRecord.remark}) - ${cleanRecord.type} → ${cleanRecord.category}`,
     });
 
     setMessage("Record added.");
@@ -391,13 +435,54 @@ export default function StockTransferPage() {
 
     setRecords((prev) => [...newRecords, ...prev]);
 
+    // Update inventory for each record based on remark type
+    for (const record of newRecords) {
+      try {
+        if (record.remark === "RETURNED") {
+          const response = await fetch("/api/product/decrease-quantity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itemName: record.itemName,
+              quantity: record.quantity,
+              date: record.date,
+              category: record.category,
+              type: record.type,
+            }),
+          });
+
+          if (!response.ok) {
+            console.warn(`Failed to decrease inventory for ${record.itemName}`);
+          }
+        } else if (record.remark === "RELEASED") {
+          const response = await fetch("/api/product/increase-quantity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itemName: record.itemName,
+              quantity: record.quantity,
+              date: record.date,
+              category: record.category,
+              type: record.type,
+            }),
+          });
+
+          if (!response.ok) {
+            console.warn(`Failed to increase inventory for ${record.itemName}`);
+          }
+        }
+      } catch (err) {
+        console.warn(`Inventory update error for ${record.itemName}:`, err.message);
+      }
+    }
+
     await logActivity({
       userId: userEmail || null,
       userName: displayName || userEmail || "Unknown User",
       userType: role || "staff",
       action: "CREATE TRANSFER BULK",
       module: "Item Transfer",
-      details: newRecords.map((r) => `${r.quantity}x ${r.itemName}`).join(", "),
+      details: newRecords.map((r) => `${r.quantity}x ${r.itemName} (${r.remark})`).join(", "),
     });
 
     setBulkRows([buildDefaultBulkRow()]);
